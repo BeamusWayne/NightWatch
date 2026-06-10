@@ -1,0 +1,56 @@
+{
+  "name": "nightwatch-agent",
+  "version": "0.1.0",
+  "description": "The black box recorder for overnight AI agents. Hash-chained run ledgers, checkpoints, and a morning debrief that verifies what your agent claims it did.",
+  "keywords": [
+    "ai-agents",
+    "claude-code",
+    "audit-trail",
+    "agent-observability",
+    "hash-chain",
+    "verifiable-agents",
+    "autonomous-agents",
+    "fable-5"
+  ],
+  "license": "MIT",
+  "author": "Beamus Wayne <fgotbe@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BeamusWayne/NightWatch.git"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "nightwatch": "dist/cli.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "fixtures",
+    "README.md",
+    "README.zh-CN.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage",
+    "demo": "npm run build && node dist/cli.js demo",
+    "prepublishOnly": "npm run typecheck && npm run test && npm run build"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@vitest/coverage-v8": "^2.1.8",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8"
+  }
+}
