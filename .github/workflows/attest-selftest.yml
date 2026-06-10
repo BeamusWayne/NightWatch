@@ -1,0 +1,31 @@
+name: attest-selftest
+
+# The repo continuously attests its own history: the archived receipt of the
+# recorded ECDSA run is verified against the exact files that run's commit
+# changed. If this gate ever goes red, either the archive was tampered with
+# or attest itself regressed — both are stop-the-line events.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  attest-archived-receipt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: attest the recorded ECDSA run against its actual commit
+        run: |
+          CHANGED=$(git diff-tree --no-commit-id --name-only -r cd1c102)
+          node dist/cli.js attest \
+            --ledger docs/runs/2026-06-10-ecdsa-self-implementation/ledger.jsonl \
+            --changed $CHANGED \
+            --scope "src/**" "tests/**" "CHANGELOG.md"
