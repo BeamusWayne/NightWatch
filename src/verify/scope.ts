@@ -34,7 +34,7 @@ export function analyzeScope(
   firstCheckpoint?: Checkpoint,
   exec: ExecFn = realExec,
 ): ScopeReport {
-  const claimedPaths = collectClaimedPaths(records);
+  const claimedPaths = collectClaimedPaths(records, projectRoot);
   const actual = collectActualPaths(projectRoot, firstCheckpoint, exec);
 
   if (actual === undefined) {
@@ -65,13 +65,20 @@ export function analyzeScope(
   };
 }
 
-/** Paths the ledger says were touched via structured edit tools. */
-export function collectClaimedPaths(records: readonly LedgerRecord[]): readonly string[] {
+/**
+ * Paths the ledger says were touched via structured edit tools. Harnesses
+ * send ABSOLUTE file paths while git speaks repo-relative — without
+ * relativizing, every claim misses its actual counterpart and legitimate
+ * edits get flagged as out-of-band writes (found by the first recorded
+ * self-run). Absolute paths outside the project root are kept verbatim:
+ * an out-of-repo write should look exactly as alien as it is.
+ */
+export function collectClaimedPaths(records: readonly LedgerRecord[], projectRoot?: string): readonly string[] {
   const paths = new Set<string>();
   for (const record of records) {
     for (const claim of record.claims ?? []) {
       if (claim.type === 'file_change' && claim.via.toLowerCase() !== 'bash') {
-        paths.add(normalizePath(claim.path));
+        paths.add(normalizePath(claim.path, projectRoot));
       }
     }
   }
@@ -107,6 +114,11 @@ function splitLines(text: string): readonly string[] {
     .filter(line => line.length > 0);
 }
 
-function normalizePath(path: string): string {
-  return path.replace(/^\.\//, '').replace(/^\//, '');
+function normalizePath(path: string, projectRoot?: string): string {
+  const cleaned = path.replace(/^\.\//, '');
+  if (projectRoot && cleaned.startsWith('/')) {
+    const rootPrefix = projectRoot.endsWith('/') ? projectRoot : `${projectRoot}/`;
+    if (cleaned.startsWith(rootPrefix)) return cleaned.slice(rootPrefix.length);
+  }
+  return cleaned;
 }

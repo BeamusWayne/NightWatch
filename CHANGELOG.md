@@ -37,6 +37,18 @@ project adheres to [Semantic Versioning](https://semver.org/).
   empty key file makes the append fail (the hook layer spills the event and
   the debrief surfaces it) rather than writing an unsigned record.
 
+### Fixed
+All three found by the first recorded self-run
+(`docs/runs/2026-06-10-ecdsa-self-implementation/`):
+- Bash fd duplication (`2>&1`, `>&2`) is no longer classified as a file
+  write; real redirects to files (`2>err.log`) still are.
+- Auto-checkpoints now fire at SessionStart as well as Stop, so single-turn
+  headless runs get a pre-run baseline and the scope check diffs against the
+  state BEFORE the agent's changes instead of after them.
+- Claimed file paths are relativized against the project root before
+  comparison with git ground truth — absolute harness paths no longer cause
+  legitimate edits to be flagged as out-of-band writes.
+
 ## [0.1.0] — 2026-06-10
 
 Initial release.

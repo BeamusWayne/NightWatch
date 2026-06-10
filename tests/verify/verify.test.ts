@@ -74,6 +74,14 @@ describe('analyzeScope', () => {
     const report = analyzeScope(chained([[]]), [], '/repo', undefined, noGit);
     expect(report.groundTruth).toBe('unavailable');
   });
+
+  it('relativizes absolute claimed paths against the project root (first self-run regression)', () => {
+    const records = chained([[{ type: 'file_change', path: '/repo/src/utils/date.ts', via: 'Edit' }]]);
+    const report = analyzeScope(records, ['src/**'], '/repo', undefined, fakeGit(['src/utils/date.ts']));
+    expect(report.claimedPaths).toEqual(['src/utils/date.ts']);
+    expect(report.unclaimed).toEqual([]);
+    expect(report.outOfScope).toEqual([]);
+  });
 });
 
 describe('verifyTestClaims', () => {

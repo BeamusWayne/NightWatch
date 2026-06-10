@@ -119,3 +119,14 @@ function sanitizeRef(session: string): string {
 export function restoreCommand(checkpoint: Checkpoint): string {
   return `git restore --source=${checkpoint.commit} --worktree -- .`;
 }
+
+/**
+ * Auto-checkpoint on SessionStart as well as Stop. A single-turn headless run
+ * fires Stop only once — at the very end — so without the session-start
+ * baseline the scope check would diff against the END state and hide every
+ * tracked-file modification. Found by the first recorded self-run.
+ */
+export function isAutoCheckpointEvent(hookEventName: string): boolean {
+  const normalized = hookEventName.toLowerCase();
+  return normalized === 'sessionstart' || normalized === 'stop';
+}

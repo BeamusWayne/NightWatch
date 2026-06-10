@@ -20,6 +20,13 @@ describe('classifyTool', () => {
     expect(classifyBashCommand('sed -i "" s/a/b/ file.txt')).toBe('write');
     expect(classifyBashCommand('ls -la')).toBe('exec');
   });
+
+  it('does not mistake fd duplication for a file write (first self-run regression)', () => {
+    expect(classifyBashCommand('npx vitest run 2>&1 | tail -8')).toBe('exec');
+    expect(classifyBashCommand('echo warn >&2')).toBe('exec');
+    // …but a real stderr-to-file redirect is still a write.
+    expect(classifyBashCommand('npx vitest run 2>err.log')).toBe('write');
+  });
 });
 
 describe('extractClaims', () => {

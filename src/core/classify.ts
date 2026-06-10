@@ -23,7 +23,10 @@ const TOOL_CLASS: Readonly<Record<string, ActionClass>> = Object.freeze({
 });
 
 const VCS_RE = /(?:^|[;&|]\s*)git\s+(commit|push|merge|rebase|reset|checkout|restore|revert|cherry-pick|tag|stash)\b/;
-const WRITE_RE = /(?:^|[;&|]\s*)(?:rm|mv|cp|mkdir|touch|chmod|chown|ln|sed\s+-i|tee)\b|>{1,2}\s*\S/;
+// `(?!&)` keeps fd duplication (`2>&1`, `>&2`) out of the write class — it
+// redirects between descriptors, no file is touched. `2>err.log` still counts.
+// Found by NightWatch's first recorded self-run (docs/runs/2026-06-10-*).
+const WRITE_RE = /(?:^|[;&|]\s*)(?:rm|mv|cp|mkdir|touch|chmod|chown|ln|sed\s+-i|tee)\b|>{1,2}(?!&)\s*\S/;
 const NET_RE = /(?:^|[;&|]\s*)(?:curl|wget|ssh|scp|rsync|nc)\b/;
 
 export function classifyTool(toolName: string, input: Readonly<Record<string, unknown>>): ActionClass {

@@ -3,7 +3,7 @@ import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
-import { createCheckpoint, listCheckpoints, restoreCommand } from './checkpoint/checkpoints.js';
+import { createCheckpoint, isAutoCheckpointEvent, listCheckpoints, restoreCommand } from './checkpoint/checkpoints.js';
 import { generateKeyPair, verifyLedgerSignatures } from './core/signing.js';
 import { renderMarkdown, renderTerminal } from './debrief/render.js';
 import type { Lang } from './debrief/i18n.js';
@@ -56,8 +56,13 @@ program
       const payload = parseHookPayload(readFileSync(0, 'utf8'));
       const root = payload.cwd ?? process.cwd();
       const result = await ingest(payload, root);
-      if (result.status === 'appended' && payload.hook_event_name.toLowerCase() === 'stop') {
-        createCheckpoint(storePathsAt(root), root, payload.session_id, `auto checkpoint at stop (seq ${result.seq})`);
+      if (result.status === 'appended' && isAutoCheckpointEvent(payload.hook_event_name)) {
+        createCheckpoint(
+          storePathsAt(root),
+          root,
+          payload.session_id,
+          `auto checkpoint (${payload.hook_event_name.toLowerCase()}, seq ${result.seq})`,
+        );
       }
     } catch {
       // Unparseable payload: nothing safe to persist; stay silent by design.
