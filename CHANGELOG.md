@@ -26,6 +26,13 @@ project adheres to [Semantic Versioning](https://semver.org/).
   recorded before this change, `attest --root <recorded-root>` tells the
   verifier where the ledger was born — found when the attest-selftest
   refused our own archived run on a GitHub runner.
+- **One session, one diary**: the hook layer now walks UP from the payload
+  cwd to the nearest existing `.nightwatch/` store (like git), instead of
+  opening a second store wherever the agent's shell happens to `cd`. Claim
+  relativization uses the store root for the same reason. Found by the
+  second recorded run (the Mastra migration), whose history split into a
+  22-record root ledger and a 79-record ledger inside `examples/…` — both
+  preserved in the run archive as the bug's own evidence.
 
 ## [0.2.0] — 2026-06-10
 

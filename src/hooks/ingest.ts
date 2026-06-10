@@ -27,6 +27,8 @@ import type { HookPayload } from './payloads.js';
 export interface IngestContext {
   readonly now: () => Date;
   readonly harness: string;
+  /** Store root for claim relativization; defaults to the payload cwd. */
+  readonly root?: string;
 }
 
 const DEFAULT_CONTEXT: IngestContext = { now: () => new Date(), harness: 'claude-code' };
@@ -66,7 +68,7 @@ export function buildRecordFromPayload(
     // machines (CI is the whole point of attest), where the recording
     // machine's absolute paths are meaningless. Found by the selftest
     // refusing the archived run on a GitHub runner.
-    const claims = relativizeClaims(extractClaims(tool, input, output), payload.cwd);
+    const claims = relativizeClaims(extractClaims(tool, input, output), context.root ?? payload.cwd);
     const target = targetOf(tool, input);
     return {
       ...base,

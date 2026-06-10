@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { buildRecordFromPayload, ingest } from '../../src/hooks/ingest.js';
 import { HOOK_COMMAND, installHooks } from '../../src/hooks/install.js';
 import { readLedger, verifyChain } from '../../src/store/ledger.js';
-import { storePathsAt } from '../../src/store/paths.js';
+import { ensureStore, findProjectRoot, storePathsAt } from '../../src/store/paths.js';
 
 const NOW = () => new Date('2026-06-10T00:00:00.000Z');
 
@@ -75,6 +75,33 @@ describe('ingest (fail-open)', () => {
     expect(result.status).toBe('appended');
     const paths = storePathsAt(root);
     expect(verifyChain(readLedger(paths, 's1')).ok).toBe(true);
+  });
+
+  it('store resolution walks up from a subdirectory — one session, one diary (split-diary regression)', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'nw-walkup-'));
+    ensureStore(storePathsAt(root));
+    const sub = join(root, 'examples', 'app');
+    mkdirSync(sub, { recursive: true });
+
+    const resolved = findProjectRoot(sub);
+    expect(resolved).toBe(root);
+
+    const result = await ingest(
+      {
+        session_id: 's1',
+        hook_event_name: 'PostToolUse',
+        cwd: sub,
+        tool_name: 'Edit',
+        tool_input: { file_path: join(root, 'docs', 'x.md') },
+        tool_response: 'ok',
+      },
+      resolved,
+      { now: NOW, harness: 'claude-code', root: resolved },
+    );
+    expect(result.status).toBe('appended');
+    const records = readLedger(storePathsAt(root), 's1');
+    // Claim is relative to the STORE root, not the wandering shell cwd.
+    expect(records[0]?.claims?.[0]).toMatchObject({ type: 'file_change', path: 'docs/x.md' });
   });
 
   it('never throws — spills when the store is unwritable', async () => {

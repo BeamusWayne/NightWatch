@@ -55,8 +55,18 @@ program
     // is recorded in .nightwatch/errors.log by ingest(); we still exit 0.
     try {
       const payload = parseHookPayload(readFileSync(0, 'utf8'));
-      const root = payload.cwd ?? process.cwd();
-      const result = await ingest(payload, root);
+      // Walk UP from cwd to the nearest existing store (like git): the
+      // session's shell cd's into subdirectories, and a recorder that opens
+      // a second diary wherever the agent wanders splits the run's history.
+      // Found by the second recorded run (Mastra migration, bug #5).
+      const cwd = payload.cwd ?? process.cwd();
+      let root: string;
+      try {
+        root = findProjectRoot(cwd);
+      } catch {
+        root = cwd; // first-ever event: the store is born at the session cwd
+      }
+      const result = await ingest(payload, root, { now: () => new Date(), harness: 'claude-code', root });
       if (result.status === 'appended' && isAutoCheckpointEvent(payload.hook_event_name)) {
         createCheckpoint(
           storePathsAt(root),
