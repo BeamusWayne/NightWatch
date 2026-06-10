@@ -25,7 +25,11 @@ jobs:
       - name: attest the recorded ECDSA run against its actual commit
         run: |
           CHANGED=$(git diff-tree --no-commit-id --name-only -r cd1c102)
+          # --root: the receipt predates write-time relativization, so its
+          # claims carry the recording machine's absolute paths. Immutable
+          # evidence doesn't get rewritten; the verifier gets told its origin.
           node dist/cli.js attest \
             --ledger docs/runs/2026-06-10-ecdsa-self-implementation/ledger.jsonl \
+            --root /Users/katya/Files/TestField/NightWatch \
             --changed $CHANGED \
             --scope "src/**" "tests/**" "CHANGELOG.md"

@@ -40,6 +40,21 @@ describe('buildRecordFromPayload', () => {
     expect((preview as string).length).toBeLessThanOrEqual(240);
   });
 
+  it('relativizes claim paths against the session cwd — receipts must verify on other machines', () => {
+    const record = buildRecordFromPayload(
+      {
+        session_id: 's1',
+        hook_event_name: 'PostToolUse',
+        cwd: '/work/repo',
+        tool_name: 'Edit',
+        tool_input: { file_path: '/work/repo/src/a.ts' },
+        tool_response: 'ok',
+      },
+      { now: NOW, harness: 'claude-code' },
+    );
+    expect(record?.claims?.[0]).toMatchObject({ type: 'file_change', path: 'src/a.ts' });
+  });
+
   it('returns undefined for hook events it does not record', () => {
     const record = buildRecordFromPayload(
       { session_id: 's1', hook_event_name: 'PreCompact' },

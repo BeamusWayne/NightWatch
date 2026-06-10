@@ -196,6 +196,7 @@ program
   .option('--changed <files...>', 'explicit changed-file list (overrides --base)')
   .option('--scope <globs...>', 'scope globs (default: store meta scope when available)')
   .option('--pubkey <file>', 'public key PEM for signature verification (default: store key in store mode)')
+  .option('--root <path>', 'project root the receipt was recorded under (relativizes legacy absolute claim paths)')
   .option('--strict', 'treat warnings as failures', false)
   .option('--json', 'machine-readable verdict on stdout', false)
   .action(
@@ -206,6 +207,7 @@ program
       changed?: string[];
       scope?: string[];
       pubkey?: string;
+      root?: string;
       strict: boolean;
       json: boolean;
     }) => {
@@ -219,7 +221,7 @@ program
         ...(receipt.publicKeyPem !== undefined ? { publicKeyPem: receipt.publicKeyPem } : {}),
         ...(changedFiles !== undefined ? { changedFiles } : {}),
         scopePatterns: receipt.scope,
-        projectRoot: receipt.projectRoot,
+        projectRoot: options.root ?? receipt.projectRoot,
         exemptPaths: receipt.exemptPaths,
         strict: options.strict,
       });

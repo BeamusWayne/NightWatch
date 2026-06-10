@@ -19,6 +19,14 @@ project adheres to [Semantic Versioning](https://semver.org/).
 - Public API: `attest` and the `AttestVerdict` / `AttestFinding` /
   `AttestInput` / `AttestSummary` / `AttestSeverity` types.
 
+### Fixed
+- **Receipts are now machine-portable**: claim paths are relativized against
+  the session cwd at write time, so a ledger recorded on one machine
+  verifies on any other (CI being the whole point of attest). For receipts
+  recorded before this change, `attest --root <recorded-root>` tells the
+  verifier where the ledger was born — found when the attest-selftest
+  refused our own archived run on a GitHub runner.
+
 ## [0.2.0] — 2026-06-10
 
 ### Added

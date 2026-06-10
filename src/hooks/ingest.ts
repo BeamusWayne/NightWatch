@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { classifyTool, targetOf } from '../core/classify.js';
 import { extractClaims, redactSecrets } from '../core/claims.js';
+import type { Claim } from '../core/record.js';
 import { digestValue } from '../core/hash.js';
 import type { LedgerRecord, UnhashedRecord } from '../core/record.js';
 import { appendRecord } from '../store/ledger.js';
@@ -61,7 +62,11 @@ export function buildRecordFromPayload(
     const tool = payload.tool_name ?? 'unknown';
     const input = payload.tool_input ?? {};
     const output = responseText(payload.tool_response);
-    const claims = extractClaims(tool, input, output);
+    // Relativize claim paths at WRITE time: receipts get verified on other
+    // machines (CI is the whole point of attest), where the recording
+    // machine's absolute paths are meaningless. Found by the selftest
+    // refusing the archived run on a GitHub runner.
+    const claims = relativizeClaims(extractClaims(tool, input, output), payload.cwd);
     const target = targetOf(tool, input);
     return {
       ...base,
@@ -130,4 +135,14 @@ function spill(paths: StorePaths, payload: HookPayload, reason: string): void {
 
 function outputLooksFailed(output: string): boolean {
   return /^(?:Error|Exit code [1-9])/m.test(output.slice(0, 2000));
+}
+
+function relativizeClaims(claims: readonly Claim[], cwd: string | undefined): readonly Claim[] {
+  if (!cwd) return claims;
+  const prefix = cwd.endsWith('/') ? cwd : `${cwd}/`;
+  return claims.map(claim =>
+    claim.type === 'file_change' && claim.path.startsWith(prefix)
+      ? { ...claim, path: claim.path.slice(prefix.length) }
+      : claim,
+  );
 }
