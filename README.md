@@ -3,6 +3,7 @@
 **The black box recorder for overnight AI agents.**
 
 [![CI](https://github.com/BeamusWayne/NightWatch/actions/workflows/ci.yml/badge.svg)](https://github.com/BeamusWayne/NightWatch/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/nightwatch-agent)](https://www.npmjs.com/package/nightwatch-agent)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![Node >= 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](package.json)
 [![中文文档](https://img.shields.io/badge/docs-%E4%B8%AD%E6%96%87-red)](./README.zh-CN.md)
