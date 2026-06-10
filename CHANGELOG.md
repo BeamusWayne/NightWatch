@@ -3,7 +3,7 @@
 The format follows [Keep a Changelog](https://keepachangelog.com/) and the
 project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.2.0] — 2026-06-10
 
 ### Added
 - Optional ECDSA signing of ledger records (P-256, `node:crypto` only — no new

@@ -8,7 +8,7 @@
 [![Node >= 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](package.json)
 [![English](https://img.shields.io/badge/docs-English-blue)](./README.md)
 
-前沿模型已经能进行**多天级的自主编码运行**。你晚上十点启动任务,睡一觉醒来,看到的是一个绿色对勾和一段自信的总结。但没有任何工具回答那个真正的问题:
+前沿模型已经能进行**多天级的自主编码运行**——Anthropic 本周发布的 [Fable 5](https://www.anthropic.com/news/claude-fable-5-mythos-5) 主打的正是这个能力。你晚上十点启动任务,睡一觉醒来,看到的是一个绿色对勾和一段自信的总结。但没有任何工具回答那个真正的问题:
 
 > **它昨晚到底干了什么——你凭什么相信?**
 
@@ -52,6 +52,8 @@ nightwatch demo            # English report
 ```
 
 最后一行就是全部意义所在:Agent 用裸 shell 重定向改了 `scripts/hotfix.sh`——没走结构化编辑工具,总结里也只字未提。台账没有这条主张,**但 git 有**。NightWatch 暴露的正是这种"叙事与事实的分歧"。
+
+> **首次实录运行**:一个 Fable 5 会话在无人值守下给本仓库自己实现了 ECDSA 签名——94 条哈希链记录、9 条测试主张全部重放核验、顺手抓出记录器自身三个 bug。原始台账与双语晨报全部公开:[docs/runs/2026-06-10-ecdsa-self-implementation](./docs/runs/2026-06-10-ecdsa-self-implementation/)。
 
 ## 快速开始(真实会话)
 

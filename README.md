@@ -8,7 +8,7 @@
 [![Node >= 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](package.json)
 [![中文文档](https://img.shields.io/badge/docs-%E4%B8%AD%E6%96%87-red)](./README.zh-CN.md)
 
-Frontier models now run **multi-day autonomous coding sessions**. You start a run at 22:00, go to sleep, and wake up to a green checkmark and a confident summary. The question nobody's tooling answers:
+Frontier models now run **multi-day autonomous coding sessions** — Anthropic's [Fable 5](https://www.anthropic.com/news/claude-fable-5-mythos-5) shipped this week with exactly that headline capability. You start a run at 22:00, go to sleep, and wake up to a green checkmark and a confident summary. The question nobody's tooling answers:
 
 > **What did it actually do all night — and why should you believe it?**
 
@@ -59,6 +59,8 @@ What the morning debrief looks like (real output):
 ```
 
 That last line is the point: the agent edited `scripts/hotfix.sh` through a raw shell redirect — no structured edit tool, no mention in the summary. The ledger didn't claim it; **git did**. NightWatch surfaces exactly that disagreement.
+
+> **First recorded production run:** a Fable 5 session implementing this repo's own ECDSA signing, unattended — 94 hash-chained records, all 9 test claims replay-verified, and three bugs in the recorder itself caught in the process. The raw ledger and both debriefs are public: [docs/runs/2026-06-10-ecdsa-self-implementation](./docs/runs/2026-06-10-ecdsa-self-implementation/).
 
 ## Quickstart (real sessions)
 
