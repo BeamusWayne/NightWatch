@@ -62,14 +62,28 @@ export const ledgerRecordSchema = z.object({
   meta: z.record(z.string(), z.unknown()).optional(),
   prev: z.string().length(64),
   hash: z.string().length(64),
+  /**
+   * Optional ECDSA P-256 signature (base64 DER) over `hash`. Absent on records
+   * written before a signing key existed — those stay valid forever.
+   */
+  sig: z.string().base64().min(1).optional(),
 });
 export type LedgerRecord = z.infer<typeof ledgerRecordSchema>;
 
-export type UnhashedRecord = Omit<LedgerRecord, 'hash'>;
+/** Sealing input: everything except the seal (`hash`) and the seal's signature (`sig`). */
+export type UnhashedRecord = Omit<LedgerRecord, 'hash' | 'sig'>;
 
-/** Hash covers every field except `hash` itself; `prev` is inside, forming the chain. */
-export function computeRecordHash(record: UnhashedRecord): string {
-  return sha256Hex(canonicalStringify(record));
+/**
+ * Hash covers every field except `hash` itself and `sig`; `prev` is inside,
+ * forming the chain. `sig` MUST stay outside the hashed content: it is a
+ * signature computed over this very hash, so hashing it back in would be
+ * circular (the hash would change the moment it is signed). Stripping both
+ * keys here keeps the hash identical whether the record is unhashed, sealed,
+ * or signed — which is what keeps pre-signing ledgers verifiable.
+ */
+export function computeRecordHash(record: UnhashedRecord | LedgerRecord): string {
+  const { hash: _hash, sig: _sig, ...content } = record as LedgerRecord;
+  return sha256Hex(canonicalStringify(content));
 }
 
 export function sealRecord(record: UnhashedRecord): LedgerRecord {
@@ -78,6 +92,5 @@ export function sealRecord(record: UnhashedRecord): LedgerRecord {
 
 /** Recompute and compare; returns false on any structural or hash mismatch. */
 export function recordHashValid(record: LedgerRecord): boolean {
-  const { hash, ...rest } = record;
-  return computeRecordHash(rest) === hash;
+  return computeRecordHash(record) === record.hash;
 }

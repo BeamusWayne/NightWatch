@@ -1,3 +1,4 @@
+import type { SignatureCheck } from '../core/signing.js';
 import type { DebriefReport } from './report.js';
 import { classLabel, t } from './i18n.js';
 import type { Lang } from './i18n.js';
@@ -32,6 +33,7 @@ export function renderMarkdown(report: DebriefReport, lang: Lang): string {
   lines.push(`## ${t('chainTitle', lang)}`);
   lines.push('');
   lines.push(chainLine(report, lang));
+  if (report.signatures) lines.push(`- ${signatureLine(report.signatures, lang)}`);
   if (report.spilledEvents > 0) lines.push(`- ⚠️ ${t('spilled', lang, { n: report.spilledEvents })}`);
   lines.push('');
 
@@ -118,6 +120,13 @@ function chainLine(report: DebriefReport, lang: Lang): string {
   return `🚨 ${t('chainBroken', lang, { seq: report.chain.brokenAtSeq ?? '?', reason: report.chain.reason ?? '' })}`;
 }
 
+function signatureLine(check: SignatureCheck, lang: Lang): string {
+  const head = check.ok
+    ? `✅ ${t('sigVerified', lang, { verified: check.verified, signed: check.signed })}`
+    : `🚨 ${t('sigInvalid', lang, { n: check.invalidSeqs.length, seqs: check.invalidSeqs.join(', ') })}`;
+  return check.unsigned > 0 ? `${head} · ⚠️ ${t('sigUnsigned', lang, { n: check.unsigned })}` : head;
+}
+
 function claimIcon(status: string): string {
   switch (status) {
     case 'verified': return '✅';
@@ -142,6 +151,7 @@ function claimText(status: string, lang: Lang): string {
 export function countFindings(report: DebriefReport): number {
   let findings = 0;
   if (!report.chain.ok) findings += 1;
+  if (report.signatures && !report.signatures.ok) findings += 1;
   if (report.spilledEvents > 0) findings += 1;
   findings += report.testClaims.filter(c => c.status === 'now_failing' || c.status === 'error').length;
   findings += report.scope.outOfScope.length > 0 ? 1 : 0;

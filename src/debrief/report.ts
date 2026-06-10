@@ -3,10 +3,13 @@ import type { Checkpoint } from '../checkpoint/checkpoints.js';
 import { listCheckpoints } from '../checkpoint/checkpoints.js';
 import { ACTION_CLASSES } from '../core/record.js';
 import type { ActionClass, LedgerRecord } from '../core/record.js';
+import { verifyLedgerSignatures } from '../core/signing.js';
+import type { SignatureCheck } from '../core/signing.js';
 import { loadHead, readLedger, verifyChain } from '../store/ledger.js';
 import type { ChainCheck } from '../store/ledger.js';
 import { readMeta } from '../store/meta.js';
 import type { StorePaths } from '../store/paths.js';
+import { readSigningConfig } from '../store/signing.js';
 import { realExec, realShellExec } from '../util/exec.js';
 import type { ExecFn } from '../util/exec.js';
 import { analyzeScope } from '../verify/scope.js';
@@ -30,6 +33,8 @@ export interface DebriefReport {
     readonly byClass: Readonly<Record<ActionClass, number>>;
   };
   readonly chain: ChainCheck;
+  /** Present only when the store has a public signing key configured. */
+  readonly signatures?: SignatureCheck;
   readonly phases: readonly Phase[];
   readonly testClaims: readonly TestClaimVerification[];
   readonly gitOps: ReadonlyArray<{ seq: number; op: string; command: string }>;
@@ -52,6 +57,7 @@ export function buildDebrief(paths: StorePaths, options: BuildDebriefOptions): D
   const records = readLedger(paths, options.session);
   const head = loadHead(paths, options.session);
   const chain = verifyChain(records, head);
+  const signatures = signatureCheckOf(paths, records);
   const meta = readMeta(paths);
   const checkpoints = listCheckpoints(paths, options.session);
   const firstCheckpoint = checkpoints[0];
@@ -77,6 +83,7 @@ export function buildDebrief(paths: StorePaths, options: BuildDebriefOptions): D
     ...(span !== undefined ? { spanHours: span } : {}),
     stats: statsOf(records),
     chain,
+    ...(signatures !== undefined ? { signatures } : {}),
     phases: buildTimeline(records),
     testClaims,
     gitOps: gitOpsOf(records),
@@ -84,6 +91,12 @@ export function buildDebrief(paths: StorePaths, options: BuildDebriefOptions): D
     checkpoints,
     spilledEvents: countSpilled(paths),
   };
+}
+
+/** Signature verification runs only for keyed stores; keyless reports omit it. */
+function signatureCheckOf(paths: StorePaths, records: readonly LedgerRecord[]): SignatureCheck | undefined {
+  const signing = readSigningConfig(paths);
+  return signing.publicKeyPem !== undefined ? verifyLedgerSignatures(records, signing.publicKeyPem) : undefined;
 }
 
 function statsOf(records: readonly LedgerRecord[]): DebriefReport['stats'] {

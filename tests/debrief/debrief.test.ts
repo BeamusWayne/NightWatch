@@ -1,10 +1,19 @@
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { GENESIS } from '../../src/core/hash.js';
 import { sealRecord } from '../../src/core/record.js';
 import type { LedgerRecord, UnhashedRecord } from '../../src/core/record.js';
+import { generateKeyPair } from '../../src/core/signing.js';
 import { countFindings, renderMarkdown } from '../../src/debrief/render.js';
+import { buildDebrief } from '../../src/debrief/report.js';
 import type { DebriefReport } from '../../src/debrief/report.js';
 import { areaOf, buildTimeline, spanHours } from '../../src/debrief/timeline.js';
+import { appendRecord } from '../../src/store/ledger.js';
+import { ensureStore, storePathsAt } from '../../src/store/paths.js';
+import { writeSigningKeys } from '../../src/store/signing.js';
+import type { ExecFn } from '../../src/util/exec.js';
 
 function chainOf(parts: ReadonlyArray<Partial<UnhashedRecord>>): readonly LedgerRecord[] {
   const records: LedgerRecord[] = [];
@@ -108,5 +117,54 @@ describe('render', () => {
     expect(md).toContain('自称通过，重跑失败');
     expect(md).toContain('超出范围');
     expect(md).toContain('哈希链完整');
+  });
+});
+
+describe('debrief signatures', () => {
+  it('adds one integrity line when signatures are present, in both languages', () => {
+    const signed: DebriefReport = {
+      ...REPORT,
+      signatures: { ok: true, total: 13, signed: 10, verified: 10, unsigned: 3, invalidSeqs: [] },
+    };
+    const en = renderMarkdown(signed, 'en');
+    expect(en).toContain('10/10');
+    expect(en).toMatch(/unsigned/);
+    const zh = renderMarkdown(signed, 'zh');
+    expect(zh).toContain('10/10');
+    expect(zh).toContain('签名');
+    expect(countFindings(signed)).toBe(countFindings(REPORT)); // valid signatures add no findings
+    expect(renderMarkdown(REPORT, 'en')).not.toMatch(/signatures/); // keyless reports are unchanged
+  });
+
+  it('flags invalid signatures as a finding', () => {
+    const broken: DebriefReport = {
+      ...REPORT,
+      signatures: { ok: false, total: 13, signed: 10, verified: 9, unsigned: 3, invalidSeqs: [7] },
+    };
+    expect(renderMarkdown(broken, 'en')).toContain('seq 7');
+    expect(countFindings(broken)).toBe(countFindings(REPORT) + 1);
+  });
+
+  it('buildDebrief runs the signature check only when a public key is configured', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'nw-debrief-sig-'));
+    const paths = storePathsAt(root);
+    ensureStore(paths);
+    const noGit: ExecFn = () => ({ status: 1, stdout: '', stderr: 'git unavailable' });
+    const record = {
+      v: 1 as const,
+      ts: new Date(1760000000000).toISOString(),
+      session: 'd1',
+      agent: { harness: 'claude-code' },
+      event: 'note' as const,
+    };
+
+    await appendRecord(paths, { record });
+    const keyless = buildDebrief(paths, { session: 'd1', projectRoot: root, rerunTests: false, exec: noGit });
+    expect(keyless.signatures).toBeUndefined();
+
+    writeSigningKeys(paths, generateKeyPair());
+    await appendRecord(paths, { record });
+    const keyed = buildDebrief(paths, { session: 'd1', projectRoot: root, rerunTests: false, exec: noGit });
+    expect(keyed.signatures).toMatchObject({ ok: true, total: 2, signed: 1, verified: 1, unsigned: 1 });
   });
 });

@@ -13,6 +13,8 @@ export {
 export type { ActionClass, Claim, LedgerRecord, UnhashedRecord } from './core/record.js';
 export { classifyBashCommand, classifyTool, targetOf } from './core/classify.js';
 export { extractClaims, redactSecrets } from './core/claims.js';
+export { generateKeyPair, signRecordHash, verifyLedgerSignatures, verifyRecordSignature } from './core/signing.js';
+export type { KeyPairPem, SignatureCheck } from './core/signing.js';
 
 export { appendRecord, parseLedgerLines, readLedger, verifyChain, loadHead } from './store/ledger.js';
 export type { ChainCheck, LedgerHead } from './store/ledger.js';
@@ -20,6 +22,8 @@ export { ensureStore, findProjectRoot, ledgerFile, storePathsAt } from './store/
 export type { StorePaths } from './store/paths.js';
 export { readMeta, updateMeta, writeMeta } from './store/meta.js';
 export type { ProjectMeta } from './store/meta.js';
+export { readSigningConfig, signingKeyFiles, writeSigningKeys } from './store/signing.js';
+export type { SigningConfig, SigningKeyFiles } from './store/signing.js';
 
 export { buildRecordFromPayload, ingest } from './hooks/ingest.js';
 export type { IngestContext, IngestResult } from './hooks/ingest.js';

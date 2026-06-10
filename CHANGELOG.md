@@ -3,6 +3,40 @@
 The format follows [Keep a Changelog](https://keepachangelog.com/) and the
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- Optional ECDSA signing of ledger records (P-256, `node:crypto` only — no new
+  dependencies). `nightwatch keygen` creates `.nightwatch/keys/signing.pem`
+  (private, mode 0600) and `signing.pub.pem`; from the next append on, each
+  record carries a `sig` field — a base64 DER signature over the record hash.
+  Because re-hashed records cannot be re-signed without the private key, a
+  full rewrite-and-relink attack that defeats the hash chain alone now fails
+  signature verification: the ledger graduates from tamper-evident to
+  tamper-resistant. `keygen` refuses to overwrite existing keys without
+  `--force`.
+- `nightwatch verify` additionally verifies every record signature when a
+  public key is configured, reporting `signed: n/m verified` and exiting
+  non-zero on any invalid signature. Unsigned records in a keyed store are a
+  warning count (they predate the key), not an error.
+- Morning debrief: the Ledger integrity section gains a signature line
+  (verified count, invalid seqs, unsigned-pre-key count) in both English and
+  Chinese; invalid signatures count as a finding in the verdict.
+- Public API: `generateKeyPair`, `signRecordHash`, `verifyRecordSignature`,
+  `verifyLedgerSignatures`, `readSigningConfig`, `writeSigningKeys`,
+  `signingKeyFiles` and the `KeyPairPem` / `SignatureCheck` / `SigningConfig`
+  types.
+
+### Compatibility
+- Fully backward compatible: records without `sig` (every pre-existing
+  ledger) parse and verify exactly as before. `sig` is deliberately excluded
+  from the hashed content — the signature is computed over the hash, so
+  signed and unsigned records share one hash rule and mixed ledgers verify
+  end to end.
+- A keyed store never silently downgrades to unsigned appends: a broken or
+  empty key file makes the append fail (the hook layer spills the event and
+  the debrief surfaces it) rather than writing an unsigned record.
+
 ## [0.1.0] — 2026-06-10
 
 Initial release.

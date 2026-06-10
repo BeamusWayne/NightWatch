@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
 import { createCheckpoint, listCheckpoints, restoreCommand } from './checkpoint/checkpoints.js';
+import { generateKeyPair, verifyLedgerSignatures } from './core/signing.js';
 import { renderMarkdown, renderTerminal } from './debrief/render.js';
 import type { Lang } from './debrief/i18n.js';
 import { buildDebrief } from './debrief/report.js';
@@ -15,6 +16,7 @@ import { loadHead, readLedger, verifyChain } from './store/ledger.js';
 import { readMeta, updateMeta } from './store/meta.js';
 import { ensureStore, findProjectRoot, storePathsAt } from './store/paths.js';
 import type { StorePaths } from './store/paths.js';
+import { readSigningConfig, writeSigningKeys } from './store/signing.js';
 import { describeError } from './util/errors.js';
 import { realExec } from './util/exec.js';
 
@@ -145,18 +147,38 @@ program
   });
 
 program
+  .command('keygen')
+  .description('generate a P-256 keypair in .nightwatch/keys/ so new ledger records are signed')
+  .option('--force', 'overwrite an existing keypair', false)
+  .action((options: { force: boolean }) => {
+    const { paths } = locate();
+    const written = writeSigningKeys(paths, generateKeyPair(), { force: options.force });
+    console.log(`public key: ${written.publicKeyPath}`);
+    console.log('records are signed from the next append on; older records stay valid unsigned.');
+    console.log('the private key never leaves .nightwatch/ — do not commit or share it.');
+  });
+
+program
   .command('verify')
-  .description('fast integrity pass: chain + head sidecar, no test re-runs')
+  .description('fast integrity pass: chain + head sidecar + signatures (when a key exists), no test re-runs')
   .option('--session <id>', 'session id (default: most recent)')
   .action((options: { session?: string }) => {
     const { paths } = locate();
     const session = resolveSession(paths, options.session);
-    const chain = verifyChain(readLedger(paths, session), loadHead(paths, session));
-    if (chain.ok) {
-      console.log(`chain intact: ${chain.length} records ✅`);
-      return;
+    const records = readLedger(paths, session);
+    const chain = verifyChain(records, loadHead(paths, session));
+    if (!chain.ok) {
+      return fail(`chain check FAILED: ${chain.reason ?? 'unknown'}${chain.brokenAtSeq !== undefined ? ` (seq ${chain.brokenAtSeq})` : ''}`);
     }
-    fail(`chain check FAILED: ${chain.reason ?? 'unknown'}${chain.brokenAtSeq !== undefined ? ` (seq ${chain.brokenAtSeq})` : ''}`);
+    console.log(`chain intact: ${chain.length} records ✅`);
+    const signing = readSigningConfig(paths);
+    if (signing.publicKeyPem === undefined) return;
+    const sigs = verifyLedgerSignatures(records, signing.publicKeyPem);
+    if (!sigs.ok) {
+      return fail(`signature check FAILED: ${sigs.invalidSeqs.length} invalid signature(s) (seq ${sigs.invalidSeqs.join(', ')})`);
+    }
+    console.log(`signed: ${sigs.verified}/${sigs.signed} verified ✅`);
+    if (sigs.unsigned > 0) console.log(`warning: ${sigs.unsigned} unsigned record(s) predate the signing key`);
   });
 
 program

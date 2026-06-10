@@ -8,6 +8,7 @@ export type NightWatchErrorCode =
   | 'CHECKPOINT_FAILED'
   | 'INVALID_PAYLOAD'
   | 'SETTINGS_MERGE_FAILED'
+  | 'SIGNING_FAILED'
   | 'VERIFY_FAILED';
 
 export class NightWatchError extends Error {

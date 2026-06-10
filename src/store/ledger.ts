@@ -3,9 +3,11 @@ import { join } from 'node:path';
 import { GENESIS } from '../core/hash.js';
 import { computeRecordHash, ledgerRecordSchema, recordHashValid, sealRecord } from '../core/record.js';
 import type { LedgerRecord, UnhashedRecord } from '../core/record.js';
+import { signRecordHash } from '../core/signing.js';
 import { NightWatchError } from '../util/errors.js';
 import { headFile, ledgerFile } from './paths.js';
 import type { StorePaths } from './paths.js';
+import { readSigningConfig } from './signing.js';
 import { withLock } from './lock.js';
 
 /** Cached chain tip so appends are O(1) instead of rescanning the JSONL. */
@@ -29,9 +31,19 @@ export async function appendRecord(paths: StorePaths, input: AppendInput): Promi
       seq: head ? head.seq + 1 : 0,
       prev: head ? head.hash : GENESIS,
     });
-    appendFileSync(ledgerFile(paths, session), `${JSON.stringify(sealed)}\n`, 'utf8');
-    saveHead(paths, session, { seq: sealed.seq, hash: sealed.hash });
-    return sealed;
+    // Sign the hash, never hash the signature (see computeRecordHash): signing
+    // happens after sealing, and `sig` rides outside the hashed content. A
+    // configured-but-broken key makes the append throw rather than silently
+    // write unsigned — the ingest layer spills the event, which the debrief
+    // surfaces as a finding.
+    const signing = readSigningConfig(paths);
+    const record: LedgerRecord =
+      signing.privateKeyPem !== undefined
+        ? { ...sealed, sig: signRecordHash(sealed.hash, signing.privateKeyPem) }
+        : sealed;
+    appendFileSync(ledgerFile(paths, session), `${JSON.stringify(record)}\n`, 'utf8');
+    saveHead(paths, session, { seq: record.seq, hash: record.hash });
+    return record;
   });
 }
 

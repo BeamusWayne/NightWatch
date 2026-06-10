@@ -9,6 +9,8 @@ export interface StorePaths {
   readonly headsDir: string;
   readonly locksDir: string;
   readonly spillDir: string;
+  /** Created on demand by `nightwatch keygen`, not by ensureStore. */
+  readonly keysDir: string;
   readonly metaFile: string;
   readonly checkpointsFile: string;
   readonly errorLog: string;
@@ -24,6 +26,7 @@ export function storePathsAt(projectRoot: string): StorePaths {
     headsDir: join(root, 'heads'),
     locksDir: join(root, 'locks'),
     spillDir: join(root, 'spill'),
+    keysDir: join(root, 'keys'),
     metaFile: join(root, 'meta.json'),
     checkpointsFile: join(root, 'checkpoints.json'),
     errorLog: join(root, 'errors.log'),
