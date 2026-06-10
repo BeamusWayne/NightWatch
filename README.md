@@ -92,6 +92,29 @@ nightwatch rollback 12          # prints the git restore command (dry run)
 nightwatch rollback 12 --apply  # actually restores the worktree
 ```
 
+## attest — gate AI-authored PRs
+
+The CI half of the story: an agent-authored PR ships its ledger as a **receipt**, and the check refuses to hand the diff to a human until the receipt vouches for it.
+
+```yaml
+# .github/workflows/attest.yml
+name: attest
+on: pull_request
+jobs:
+  attest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: BeamusWayne/NightWatch@main
+        with:
+          ledger: .nightwatch-receipt.jsonl
+          base: origin/${{ github.base_ref }}
+          scope: 'src/** tests/**'
+```
+
+`nightwatch attest` exits non-zero when: the hash chain is broken or truncated · any signature is invalid · **any changed file has no ledger claim backing it** (`UNDECLARED_CHANGE` — the core gate) · a change lands outside the declared scope. Warnings (unsigned pre-key records, a final failing test claim) pass unless `--strict`. `--json` emits the machine-readable verdict; local store mode works too: `nightwatch attest --base origin/main` inside any recorded project.
+
 ## How it works
 
 ```
@@ -145,9 +168,9 @@ The record shape is designed to map onto the direction of [IETF draft-sharif-age
 
 ## Roadmap
 
-- **`attest` mode** — a GitHub Action that gates AI-authored PRs on a green ledger ("no receipt, no review")
-- **ECDSA-signed records + remote chain-tip anchor** — tamper *resistance*, not just detection
-- **Adapters**: OpenClaw / Codex CLI / [Alfred](https://github.com/BeamusWayne/Alfred) native ledger import
+- ~~`attest` mode~~ — **shipped**: [CI gate + GitHub Action](#attest--gate-ai-authored-prs)
+- ~~ECDSA-signed records~~ — **shipped in v0.2.0** ([implemented by a recorded agent run](./docs/runs/2026-06-10-ecdsa-self-implementation/)); remote chain-tip anchoring still ahead
+- **Adapters**: a neutral `nightwatch emit` JSON entry point, then OpenClaw / Codex CLI / [Alfred](https://github.com/BeamusWayne/Alfred) native ledger import
 - **Reliability reports** — periodic published debrief stats across harnesses and models, built on [trace-vault](https://github.com/BeamusWayne/trace-vault)'s determinism/faithfulness axes
 
 ## Development

@@ -1,0 +1,54 @@
+name: 'NightWatch Attest'
+description: >-
+  Gate AI-authored pull requests on a verifiable run ledger: intact hash chain,
+  valid signatures, and every changed file backed by a ledger claim.
+  No receipt, no review.
+branding:
+  icon: 'moon'
+  color: 'purple'
+
+inputs:
+  ledger:
+    description: 'Path to the committed run ledger (the receipt), e.g. .nightwatch-receipt.jsonl'
+    required: true
+  base:
+    description: 'Base git ref to diff against (e.g. origin/main or the PR base)'
+    required: true
+  scope:
+    description: 'Space-separated scope globs the change must stay inside (optional)'
+    required: false
+    default: ''
+  pubkey:
+    description: 'Path to the public signing key PEM (optional; enables signature verification)'
+    required: false
+    default: ''
+  strict:
+    description: 'Treat warnings as failures'
+    required: false
+    default: 'false'
+  version:
+    description: 'nightwatch-agent version to install'
+    required: false
+    default: 'latest'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install nightwatch-agent
+      shell: bash
+      run: npm install -g "nightwatch-agent@${{ inputs.version }}"
+    - name: Attest the change set against the ledger
+      shell: bash
+      run: |
+        ARGS=(--ledger "${{ inputs.ledger }}" --base "${{ inputs.base }}")
+        if [ -n "${{ inputs.scope }}" ]; then
+          # shellcheck disable=SC2206
+          ARGS+=(--scope ${{ inputs.scope }})
+        fi
+        if [ -n "${{ inputs.pubkey }}" ]; then
+          ARGS+=(--pubkey "${{ inputs.pubkey }}")
+        fi
+        if [ "${{ inputs.strict }}" = "true" ]; then
+          ARGS+=(--strict)
+        fi
+        nightwatch attest "${ARGS[@]}"

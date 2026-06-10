@@ -85,6 +85,29 @@ nightwatch rollback 12          # 打印 git restore 命令（演练模式）
 nightwatch rollback 12 --apply  # 真正恢复工作区
 ```
 
+## attest — 给 AI 生成的 PR 设门禁
+
+故事的 CI 半场:Agent 写的 PR 必须带着自己的台账作为**回执**提交,回执核验不过,diff 就不会被递到人类面前。
+
+```yaml
+# .github/workflows/attest.yml
+name: attest
+on: pull_request
+jobs:
+  attest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: BeamusWayne/NightWatch@main
+        with:
+          ledger: .nightwatch-receipt.jsonl
+          base: origin/${{ github.base_ref }}
+          scope: 'src/** tests/**'
+```
+
+`nightwatch attest` 在以下情况返回非零:哈希链断裂或被截断 · 任何签名无效 · **任何变更文件没有台账主张背书**(`UNDECLARED_CHANGE`——核心闸门)· 变更超出声明范围。警告(密钥前的未签名记录、最后一次测试记录为失败)默认放行,`--strict` 收紧。`--json` 输出机器可读裁决;本地模式同样可用:在任何被记录的项目里 `nightwatch attest --base origin/main`。
+
 ## 工作原理
 
 ```
@@ -138,9 +161,9 @@ nightwatch debrief    链校验 + 主张重跑 + 范围比对 → 晨报
 
 ## 路线图
 
-- **`attest` 模式** —— GitHub Action,用绿色台账给 AI 生成的 PR 设门禁("没有回执,不进 review")
-- **ECDSA 签名记录 + 远程链头锚定** —— 从"可检测篡改"到"抗篡改"
-- **适配器**:OpenClaw / Codex CLI / [Alfred](https://github.com/BeamusWayne/Alfred) 原生台账导入
+- ~~`attest` 模式~~ —— **已上线**:[CI 门禁 + GitHub Action](#attest--给-ai-生成的-pr-设门禁)
+- ~~ECDSA 签名记录~~ —— **v0.2.0 已上线**([由被记录的 Agent 运行实现](./docs/runs/2026-06-10-ecdsa-self-implementation/));远程链头锚定仍在路上
+- **适配器**:先做中立的 `nightwatch emit` JSON 入口,再做 OpenClaw / Codex CLI / [Alfred](https://github.com/BeamusWayne/Alfred) 原生台账导入
 - **可靠性报告** —— 基于 [trace-vault](https://github.com/BeamusWayne/trace-vault) 双轴(确定性/可信度)的跨 harness、跨模型定期实测
 
 ## 开发

@@ -3,6 +3,22 @@
 The format follows [Keep a Changelog](https://keepachangelog.com/) and the
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **`nightwatch attest` — the CI gate.** Verifies that a run ledger (the
+  "receipt") vouches for a change set: intact hash chain, valid signatures
+  (when a key is provided), every changed file backed by a ledger claim
+  (`UNDECLARED_CHANGE` is the core refusal), and scope compliance. Receipt
+  mode (`--ledger file --base ref`) for CI, store mode for local use;
+  `--json` machine-readable verdict; `--strict` promotes warnings to
+  failures; exits non-zero on refusal.
+- **Composite GitHub Action** (`action.yml` at the repo root): gate
+  AI-authored PRs with `uses: BeamusWayne/NightWatch@<ref>` — "no receipt,
+  no review".
+- Public API: `attest` and the `AttestVerdict` / `AttestFinding` /
+  `AttestInput` / `AttestSummary` / `AttestSeverity` types.
+
 ## [0.2.0] — 2026-06-10
 
 ### Added

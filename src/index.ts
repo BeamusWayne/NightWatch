@@ -48,6 +48,9 @@ export type { Phase } from './debrief/timeline.js';
 export { countFindings, renderMarkdown, renderTerminal } from './debrief/render.js';
 export type { Lang } from './debrief/i18n.js';
 
+export { attest } from './attest/attest.js';
+export type { AttestFinding, AttestInput, AttestSeverity, AttestSummary, AttestVerdict } from './attest/attest.js';
+
 export { runDemo } from './demo.js';
 export type { DemoResult } from './demo.js';
 
