@@ -3,7 +3,7 @@
 The format follows [Keep a Changelog](https://keepachangelog.com/) and the
 project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.3.0] — 2026-06-11
 
 ### Added
 - **`nightwatch attest` — the CI gate.** Verifies that a run ledger (the

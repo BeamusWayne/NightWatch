@@ -106,7 +106,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
-      - uses: BeamusWayne/NightWatch@main
+      - uses: BeamusWayne/NightWatch@v0.3.0
         with:
           ledger: .nightwatch-receipt.jsonl
           base: origin/${{ github.base_ref }}
