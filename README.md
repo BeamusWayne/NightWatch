@@ -4,6 +4,7 @@
 
 [![CI](https://github.com/BeamusWayne/NightWatch/actions/workflows/ci.yml/badge.svg)](https://github.com/BeamusWayne/NightWatch/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/nightwatch-agent)](https://www.npmjs.com/package/nightwatch-agent)
+[![Marketplace](https://img.shields.io/badge/GitHub%20Marketplace-NightWatch%20Attest-6f42c1?logo=github)](https://github.com/marketplace/actions/nightwatch-attest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![Node >= 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](package.json)
 [![中文文档](https://img.shields.io/badge/docs-%E4%B8%AD%E6%96%87-red)](./README.zh-CN.md)
@@ -20,7 +21,7 @@ NightWatch records every event of an agent session into a **hash-chained, append
 
 ## 30-second demo
 
-No agent session needed — replay a bundled synthetic overnight run through the real pipeline:
+No agent session needed — replay a bundled synthetic overnight run through the real pipeline (it builds a sandbox repo in a temp directory; your projects are never touched):
 
 ```bash
 npm install -g nightwatch-agent
@@ -64,17 +65,28 @@ That last line is the point: the agent edited `scripts/hotfix.sh` through a raw 
 
 ## Quickstart (real sessions)
 
+**Requirements:** Node ≥ 20 · current [Claude Code](https://claude.com/claude-code) (the recording adapter — **any model it runs is fine**) · git recommended (checkpoints and ground-truth diffs degrade gracefully without it). Tested on macOS/Linux; Windows untested.
+
 ```bash
 cd your-project
 nightwatch init --goal "Migrate utils to strict TS" --scope "src/**" "tests/**"
 # → installs Claude Code hooks into .claude/settings.json (idempotent, preserves yours)
-
-# ... run your agent overnight ...
-
-nightwatch debrief             # morning report in your terminal
-nightwatch debrief --verify    # also RE-RUN claimed test commands to verify "passed"
-nightwatch debrief --lang zh --md report.md
 ```
+
+Then, in order — **step 1 is the one everyone misses**:
+
+1. **Start a NEW Claude Code session.** Hooks load at session start: an already-open session records nothing. On the first start, Claude Code asks you to review the new project hooks — that is the five `nightwatch hook` entries; approve them.
+2. **Verify it is recording before trusting it with a night** (10 seconds): let the agent make a couple of tool calls, then from another terminal:
+   ```bash
+   nightwatch status    # records: >0 · chain: intact ✅
+   ```
+3. Hand over the real task and walk away. One Claude Code conversation = one **session** = one ledger; every command accepts `--session`, the latest session is the default.
+4. In the morning:
+   ```bash
+   nightwatch debrief             # morning report in your terminal
+   nightwatch debrief --verify    # also RE-RUN claimed test commands to verify "passed"
+   nightwatch debrief --lang zh --md report.md
+   ```
 
 ## What gets verified
 
@@ -112,6 +124,8 @@ jobs:
           base: origin/${{ github.base_ref }}
           scope: 'src/** tests/**'
 ```
+
+The Action is live on the [GitHub Marketplace](https://github.com/marketplace/actions/nightwatch-attest).
 
 `nightwatch attest` exits non-zero when: the hash chain is broken or truncated · any signature is invalid · **any changed file has no ledger claim backing it** (`UNDECLARED_CHANGE` — the core gate) · a change lands outside the declared scope. Warnings (unsigned pre-key records, a final failing test claim) pass unless `--strict`. `--json` emits the machine-readable verdict; local store mode works too: `nightwatch attest --base origin/main` inside any recorded project.
 
@@ -196,6 +210,14 @@ The record shape is designed to map onto the direction of [IETF draft-sharif-age
 | `nightwatch demo [--lang zh]` | replay the bundled overnight run |
 | `nightwatch --version` | print version |
 
+## Troubleshooting
+
+**`debrief` says no sessions / `status` shows 0 records.** In order: ① did you start a **new** Claude Code session after `nightwatch init`? Hooks load at session start. ② is the CLI resolvable where hooks run — try `npx --no-install nightwatch --version` from the project root (`npm install -g nightwatch-agent` is the simplest fix)? ③ check `.nightwatch/errors.log` and `.nightwatch/spill/` — the fail-open recorder parks whatever it could not append there.
+
+**Claude Code prompted me about unrecognized hooks.** That is the one-time security review of the five `nightwatch hook` entries `init` wrote into `.claude/settings.json`. Approve them once per project.
+
+**The report says "git ground truth unavailable".** The project is not a git repo (or git is not installed). Recording and chain verification still work; the scope comparison and checkpoints need git.
+
 ## FAQ
 
 **Does recording slow my agent down?** One short-lived node process per hook event, fail-open by construction. Checkpoints (the only heavier step) run at session start and turn end, not per tool call.
@@ -214,11 +236,14 @@ The record shape is designed to map onto the direction of [IETF draft-sharif-age
 
 **Can I read the ledger by hand?** It's plain JSONL: `jq . .nightwatch/ledger/<session>.jsonl` — every record is self-describing.
 
+**How do I stop recording / uninstall?** Delete the five hook entries whose command contains `nightwatch hook` from `.claude/settings.json`, then `rm -rf .nightwatch/`. Already-recorded ledgers stay verifiable wherever you copied them. (`nightwatch uninstall` is on the roadmap.)
+
 ## Roadmap
 
 - ~~`attest` mode~~ — **shipped**: [CI gate + GitHub Action](#attest--gate-ai-authored-prs)
 - ~~ECDSA-signed records~~ — **shipped in v0.2.0** ([implemented by a recorded agent run](./docs/runs/2026-06-10-ecdsa-self-implementation/)); remote chain-tip anchoring still ahead
 - **Adapters**: a neutral `nightwatch emit` JSON entry point, then OpenClaw / Codex CLI / [Alfred](https://github.com/BeamusWayne/Alfred) native ledger import
+- **QoL**: `nightwatch uninstall` and `nightwatch doctor` (one-command recording-pipeline self-check)
 - **Reliability reports** — periodic published debrief stats across harnesses and models, built on [trace-vault](https://github.com/BeamusWayne/trace-vault)'s determinism/faithfulness axes
 
 ## Development

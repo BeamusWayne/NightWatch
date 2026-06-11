@@ -4,6 +4,7 @@
 
 [![CI](https://github.com/BeamusWayne/NightWatch/actions/workflows/ci.yml/badge.svg)](https://github.com/BeamusWayne/NightWatch/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/nightwatch-agent)](https://www.npmjs.com/package/nightwatch-agent)
+[![Marketplace](https://img.shields.io/badge/GitHub%20Marketplace-NightWatch%20Attest-6f42c1?logo=github)](https://github.com/marketplace/actions/nightwatch-attest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![Node >= 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](package.json)
 [![English](https://img.shields.io/badge/docs-English-blue)](./README.md)
@@ -20,7 +21,7 @@ NightWatch 把 Agent 会话的每个事件写入**哈希链接、只追加的台
 
 ## 30 秒看效果
 
-不需要真实 Agent 会话——内置的合成通宵运行会走一遍真实管线:
+不需要真实 Agent 会话——内置的合成通宵运行会走一遍真实管线(在临时目录里自建沙盒仓库,不会碰你的任何项目):
 
 ```bash
 npm install -g nightwatch-agent
@@ -57,17 +58,28 @@ nightwatch demo            # English report
 
 ## 快速开始(真实会话)
 
+**环境要求**:Node ≥ 20 · 当前版 [Claude Code](https://claude.com/claude-code)(录制适配器——**它能跑的任何模型都行**)· 建议有 git(检查点与基准对账;没有则优雅降级)。macOS/Linux 已验证;Windows 未测试。
+
 ```bash
 cd your-project
 nightwatch init --goal "把 utils 迁移到 strict TS" --scope "src/**" "tests/**"
 # → 把 hooks 装进 .claude/settings.json（幂等,不动你已有的 hooks）
-
-# …… 让 Agent 跑一整晚 ……
-
-nightwatch debrief --lang zh          # 终端里的晨报
-nightwatch debrief --verify           # 额外重跑记录过的测试命令,核验"通过"主张
-nightwatch debrief --lang zh --md report.md
 ```
+
+接下来按序操作——**第 1 步是所有人最容易漏掉的**:
+
+1. **开一个全新的 Claude Code 会话。** Hooks 在会话启动时加载:已经开着的会话什么都录不到。新会话首次启动时,Claude Code 会让你审查项目新增的 hooks——那就是 init 写入的五条 `nightwatch hook`,批准即可。
+2. **跑通宵之前,先花 10 秒确认在录**:让 Agent 随便执行两个工具调用,然后在另一个终端:
+   ```bash
+   nightwatch status    # records: >0 · chain: intact ✅
+   ```
+3. 交付真正的任务,走人。一次 Claude Code 对话 = 一个 **session** = 一本台账;所有命令支持 `--session`,默认取最近一次。
+4. 第二天早上:
+   ```bash
+   nightwatch debrief --lang zh          # 终端里的晨报
+   nightwatch debrief --verify           # 额外重跑记录过的测试命令,核验"通过"主张
+   nightwatch debrief --lang zh --md report.md
+   ```
 
 ## 核验矩阵
 
@@ -105,6 +117,8 @@ jobs:
           base: origin/${{ github.base_ref }}
           scope: 'src/** tests/**'
 ```
+
+Action 已上架 [GitHub Marketplace](https://github.com/marketplace/actions/nightwatch-attest)。
 
 `nightwatch attest` 在以下情况返回非零:哈希链断裂或被截断 · 任何签名无效 · **任何变更文件没有台账主张背书**(`UNDECLARED_CHANGE`——核心闸门)· 变更超出声明范围。警告(密钥前的未签名记录、最后一次测试记录为失败)默认放行,`--strict` 收紧。`--json` 输出机器可读裁决;本地模式同样可用:在任何被记录的项目里 `nightwatch attest --base origin/main`。
 
@@ -189,6 +203,14 @@ nightwatch debrief    链校验 + 主张重跑 + 范围比对 → 晨报
 | `nightwatch demo [--lang zh]` | 重放内置通宵运行 |
 | `nightwatch --version` | 打印版本号 |
 
+## 故障排查
+
+**`debrief` 说没有会话 / `status` 显示 0 条记录。** 按序检查:① `nightwatch init` 之后开过**新的** Claude Code 会话吗?Hooks 在会话启动时加载。② hooks 运行处能解析到 CLI 吗——在项目根目录试 `npx --no-install nightwatch --version`(最简单的修法是 `npm install -g nightwatch-agent`)。③ 查看 `.nightwatch/errors.log` 与 `.nightwatch/spill/`——fail-open 的记录器会把写不进的事件停在那里。
+
+**Claude Code 弹窗问我要不要批准未知 hooks。** 那是对 init 写入 `.claude/settings.json` 的五条 `nightwatch hook` 的一次性安全审查,每个项目批准一次即可。
+
+**报告说"无 git 基准"。** 项目不是 git 仓库(或没装 git)。记录和链校验照常工作;范围对账与检查点需要 git。
+
 ## 常见问题
 
 **记录会拖慢 Agent 吗?** 每个 hook 事件只起一个短命 node 进程,且 fail-open。较重的检查点只在会话开始和每轮结束时跑,不跟随工具调用。
@@ -207,11 +229,14 @@ nightwatch debrief    链校验 + 主张重跑 + 范围比对 → 晨报
 
 **能手工读台账吗?** 纯 JSONL:`jq . .nightwatch/ledger/<session>.jsonl`——每条记录自描述。
 
+**怎么停止记录 / 卸载?** 从 `.claude/settings.json` 删掉命令含 `nightwatch hook` 的五条 hook 配置,然后 `rm -rf .nightwatch/`。已录好的台账拷贝到哪里都依然可验。(`nightwatch uninstall` 命令在路线图上。)
+
 ## 路线图
 
 - ~~`attest` 模式~~ —— **已上线**:[CI 门禁 + GitHub Action](#attest--给-ai-生成的-pr-设门禁)
 - ~~ECDSA 签名记录~~ —— **v0.2.0 已上线**([由被记录的 Agent 运行实现](./docs/runs/2026-06-10-ecdsa-self-implementation/));远程链头锚定仍在路上
 - **适配器**:先做中立的 `nightwatch emit` JSON 入口,再做 OpenClaw / Codex CLI / [Alfred](https://github.com/BeamusWayne/Alfred) 原生台账导入
+- **体验**:`nightwatch uninstall` 与 `nightwatch doctor`(一条命令自检录制管线)
 - **可靠性报告** —— 基于 [trace-vault](https://github.com/BeamusWayne/trace-vault) 双轴(确定性/可信度)的跨 harness、跨模型定期实测
 
 ## 开发
