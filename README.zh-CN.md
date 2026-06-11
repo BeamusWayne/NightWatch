@@ -56,7 +56,7 @@ nightwatch demo            # English report
 
 最后一行就是全部意义所在:Agent 用裸 shell 重定向改了 `scripts/hotfix.sh`——没走结构化编辑工具,总结里也只字未提。台账没有这条主张,**但 git 有**。NightWatch 暴露的正是这种"叙事与事实的分歧"。
 
-> **首次实录运行**:一个 Fable 5 会话在无人值守下给本仓库自己实现了 ECDSA 签名——94 条哈希链记录、9 条测试主张全部重放核验、头两次 dogfood 实录共抓出**记录器自身五个 bug**——包括第二次运行的"日记分裂"(记录器跟着 Agent 的 `cd` 搬进了子目录)。原始台账与未修饰晨报全部公开:[docs/runs/](./docs/runs/)。
+> **首次实录运行**:一个 Fable 5 会话在无人值守下给本仓库自己实现了 ECDSA 签名——94 条哈希链记录、9 条测试主张全部重放核验、头两次 dogfood 实录共抓出**记录器自身五个 bug**——包括第二次运行的"日记分裂"(记录器跟着 Agent 的 `cd` 搬进了子目录)。原始台账与未修饰晨报全部公开:[docs/runs/](./docs/runs/)。**完整发布故事:**[中文](./docs/posts/launch-story.zh.md) · [English](./docs/posts/launch-story.en.md)
 
 ## 快速开始(真实会话)
 

@@ -63,7 +63,7 @@ What the morning debrief looks like (real output):
 
 That last line is the point: the agent edited `scripts/hotfix.sh` through a raw shell redirect — no structured edit tool, no mention in the summary. The ledger didn't claim it; **git did**. NightWatch surfaces exactly that disagreement.
 
-> **First recorded production run:** a Fable 5 session implementing this repo's own ECDSA signing, unattended — 94 hash-chained records, all 9 test claims replay-verified, and **five recorder bugs caught across the first two dogfooding runs** — including the second run's "split diary" (the recorder followed the agent's `cd` into a subdirectory). Raw ledgers and unretouched debriefs: [docs/runs/](./docs/runs/).
+> **First recorded production run:** a Fable 5 session implementing this repo's own ECDSA signing, unattended — 94 hash-chained records, all 9 test claims replay-verified, and **five recorder bugs caught across the first two dogfooding runs** — including the second run's "split diary" (the recorder followed the agent's `cd` into a subdirectory). Raw ledgers and unretouched debriefs: [docs/runs/](./docs/runs/). **The full launch story:** [English](./docs/posts/launch-story.en.md) · [中文](./docs/posts/launch-story.zh.md)
 
 ## Quickstart (real sessions)
 
