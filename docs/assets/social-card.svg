@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640">
+  <rect width="1280" height="640" fill="#0d1117"/>
+  <rect x="2" y="2" width="1276" height="636" rx="14" fill="none" stroke="#30363d" stroke-width="2"/>
+  <text x="84" y="170" font-size="110">🌙</text>
+  <text x="220" y="180" font-family="ui-monospace,Menlo,Consolas,monospace" font-size="86" font-weight="800" fill="#f0f6fc">NightWatch</text>
+  <text x="86" y="268" font-family="-apple-system,Segoe UI,sans-serif" font-size="34" fill="#c9d1d9">The black box recorder for overnight AI agents</text>
+  <text x="86" y="350" font-family="ui-monospace,Menlo,monospace" font-size="40" font-weight="700" fill="#79c0ff">Logs are claims. Replays are proofs.</text>
+  <rect x="86" y="408" width="1108" height="140" rx="10" fill="#161b22" stroke="#30363d"/>
+  <text x="116" y="452" font-family="ui-monospace,Menlo,monospace" font-size="22" fill="#56d364">✅ hash chain intact (94 records) · signed: 94/94 verified</text>
+  <text x="116" y="490" font-family="ui-monospace,Menlo,monospace" font-size="22" fill="#e3b341">⚠️ CHANGED BUT NEVER CLAIMED (out-of-band write): scripts/hotfix.sh</text>
+  <text x="116" y="528" font-family="ui-monospace,Menlo,monospace" font-size="22" fill="#f85149">❌ REFUSED — no receipt, no review</text>
+  <text x="86" y="600" font-family="ui-monospace,Menlo,monospace" font-size="22" fill="#8b949e">npm i -g nightwatch-agent  ·  GitHub Marketplace  ·  MIT  ·  中文文档</text>
+</svg>
