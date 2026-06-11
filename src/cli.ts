@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
@@ -11,7 +11,8 @@ import type { Lang } from './debrief/i18n.js';
 import { buildDebrief } from './debrief/report.js';
 import { runDemo } from './demo.js';
 import { ingest } from './hooks/ingest.js';
-import { installHooks } from './hooks/install.js';
+import { installHooks, uninstallHooks } from './hooks/install.js';
+import { runDoctor } from './doctor/doctor.js';
 import { parseHookPayload } from './hooks/payloads.js';
 import { loadHead, parseLedgerLines, readLedger, verifyChain } from './store/ledger.js';
 import { readMeta, updateMeta } from './store/meta.js';
@@ -260,6 +261,41 @@ program
       if (!verdict.ok) process.exit(1);
     },
   );
+
+program
+  .command('uninstall')
+  .description('remove NightWatch hooks from .claude/settings.json (foreign hooks untouched)')
+  .option('--purge', 'also delete the .nightwatch/ store (ledgers, checkpoints metadata, keys)', false)
+  .action((options: { purge: boolean }) => {
+    const root = process.cwd();
+    const result = uninstallHooks(root);
+    if (result.removed.length > 0) console.log(`hooks removed: ${result.removed.join(', ')}`);
+    else console.log('no NightWatch hooks found in .claude/settings.json');
+    if (options.purge) {
+      rmSync(storePathsAt(root).root, { recursive: true, force: true });
+      console.log('.nightwatch/ store deleted');
+    } else {
+      console.log('store kept (.nightwatch/) — pass --purge to delete recorded ledgers too');
+    }
+  });
+
+program
+  .command('doctor')
+  .description('self-check the recording pipeline (the executable Troubleshooting section)')
+  .action(() => {
+    let root: string;
+    try {
+      root = findProjectRoot(process.cwd());
+    } catch {
+      root = process.cwd();
+    }
+    const checks = runDoctor(root);
+    for (const check of checks) {
+      const icon = check.status === 'ok' ? '✅' : check.status === 'warn' ? '⚠️' : '❌';
+      console.log(`${icon} ${check.name.padEnd(7)} ${check.detail}`);
+    }
+    if (checks.some(check => check.status === 'fail')) process.exit(1);
+  });
 
 program
   .command('demo')

@@ -17,6 +17,8 @@ NightWatch records every event of an agent session into a **hash-chained, append
 
 **Logs are claims. Replays are proofs.**
 
+<p align="center"><img src="docs/assets/demo-en.svg" alt="nightwatch morning debrief — terminal output" width="900"></p>
+
 ---
 
 ## 30-second demo
@@ -208,6 +210,8 @@ The record shape is designed to map onto the direction of [IETF draft-sharif-age
 | `nightwatch checkpoint [-m note]` | manual worktree snapshot |
 | `nightwatch rollback <seq> [--apply]` | restore a checkpoint (dry-run by default) |
 | `nightwatch demo [--lang zh]` | replay the bundled overnight run |
+| `nightwatch doctor` | self-check the recording pipeline (executable Troubleshooting) |
+| `nightwatch uninstall [--purge]` | remove hooks (foreign hooks untouched); `--purge` deletes the store |
 | `nightwatch --version` | print version |
 
 ## Troubleshooting
@@ -236,14 +240,14 @@ The record shape is designed to map onto the direction of [IETF draft-sharif-age
 
 **Can I read the ledger by hand?** It's plain JSONL: `jq . .nightwatch/ledger/<session>.jsonl` — every record is self-describing.
 
-**How do I stop recording / uninstall?** Delete the five hook entries whose command contains `nightwatch hook` from `.claude/settings.json`, then `rm -rf .nightwatch/`. Already-recorded ledgers stay verifiable wherever you copied them. (`nightwatch uninstall` is on the roadmap.)
+**How do I stop recording / uninstall?** `nightwatch uninstall` removes the five hook entries (every foreign hook is preserved); add `--purge` to delete `.nightwatch/` too. Already-recorded ledgers stay verifiable wherever you copied them.
 
 ## Roadmap
 
 - ~~`attest` mode~~ — **shipped**: [CI gate + GitHub Action](#attest--gate-ai-authored-prs)
 - ~~ECDSA-signed records~~ — **shipped in v0.2.0** ([implemented by a recorded agent run](./docs/runs/2026-06-10-ecdsa-self-implementation/)); remote chain-tip anchoring still ahead
 - **Adapters**: a neutral `nightwatch emit` JSON entry point, then OpenClaw / Codex CLI / [Alfred](https://github.com/BeamusWayne/Alfred) native ledger import
-- **QoL**: `nightwatch uninstall` and `nightwatch doctor` (one-command recording-pipeline self-check)
+- ~~QoL: `nightwatch uninstall` / `nightwatch doctor`~~ — **shipped in v0.4.0**
 - **Reliability reports** — periodic published debrief stats across harnesses and models, built on [trace-vault](https://github.com/BeamusWayne/trace-vault)'s determinism/faithfulness axes
 
 ## Development

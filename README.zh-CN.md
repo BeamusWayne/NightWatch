@@ -17,6 +17,8 @@ NightWatch 把 Agent 会话的每个事件写入**哈希链接、只追加的台
 
 **日志是主张,重放才是证明。**
 
+<p align="center"><img src="docs/assets/demo-zh.svg" alt="nightwatch 晨报 — 终端输出" width="900"></p>
+
 ---
 
 ## 30 秒看效果
@@ -201,6 +203,8 @@ nightwatch debrief    链校验 + 主张重跑 + 范围比对 → 晨报
 | `nightwatch checkpoint [-m note]` | 手动工作区快照 |
 | `nightwatch rollback <seq> [--apply]` | 恢复检查点(默认演练模式) |
 | `nightwatch demo [--lang zh]` | 重放内置通宵运行 |
+| `nightwatch doctor` | 录制管线自检(可执行版"故障排查") |
+| `nightwatch uninstall [--purge]` | 移除 hooks(他人 hooks 不动);`--purge` 连存储一起删 |
 | `nightwatch --version` | 打印版本号 |
 
 ## 故障排查
@@ -229,14 +233,14 @@ nightwatch debrief    链校验 + 主张重跑 + 范围比对 → 晨报
 
 **能手工读台账吗?** 纯 JSONL:`jq . .nightwatch/ledger/<session>.jsonl`——每条记录自描述。
 
-**怎么停止记录 / 卸载?** 从 `.claude/settings.json` 删掉命令含 `nightwatch hook` 的五条 hook 配置,然后 `rm -rf .nightwatch/`。已录好的台账拷贝到哪里都依然可验。(`nightwatch uninstall` 命令在路线图上。)
+**怎么停止记录 / 卸载?** `nightwatch uninstall` 移除五条 hook 配置(他人的 hooks 一律保留);加 `--purge` 连 `.nightwatch/` 一起删。已录好的台账拷贝到哪里都依然可验。
 
 ## 路线图
 
 - ~~`attest` 模式~~ —— **已上线**:[CI 门禁 + GitHub Action](#attest--给-ai-生成的-pr-设门禁)
 - ~~ECDSA 签名记录~~ —— **v0.2.0 已上线**([由被记录的 Agent 运行实现](./docs/runs/2026-06-10-ecdsa-self-implementation/));远程链头锚定仍在路上
 - **适配器**:先做中立的 `nightwatch emit` JSON 入口,再做 OpenClaw / Codex CLI / [Alfred](https://github.com/BeamusWayne/Alfred) 原生台账导入
-- **体验**:`nightwatch uninstall` 与 `nightwatch doctor`(一条命令自检录制管线)
+- ~~体验:`nightwatch uninstall` / `nightwatch doctor`~~ —— **v0.4.0 已上线**
 - **可靠性报告** —— 基于 [trace-vault](https://github.com/BeamusWayne/trace-vault) 双轴(确定性/可信度)的跨 harness、跨模型定期实测
 
 ## 开发

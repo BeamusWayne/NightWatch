@@ -1,6 +1,6 @@
 {
   "name": "nightwatch-agent",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "The black box recorder for overnight AI agents. Hash-chained run ledgers, checkpoints, and a morning debrief that verifies what your agent claims it did.",
   "keywords": [
     "ai-agents",

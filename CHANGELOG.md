@@ -3,6 +3,25 @@
 The format follows [Keep a Changelog](https://keepachangelog.com/) and the
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] — 2026-06-11
+
+### Added
+- `nightwatch uninstall [--purge]` — exact inverse of `init`: removes the five
+  hook entries (every foreign hook preserved); `--purge` also deletes the
+  `.nightwatch/` store. No more orphaned hooks silently failing after a
+  package uninstall.
+- `nightwatch doctor` — one-command self-check of the recording pipeline
+  (node/git/hooks/store/ledger-chain/spill), the executable version of the
+  README Troubleshooting section.
+- Terminal-styled demo SVGs embedded at the top of both READMEs.
+
+### Changed
+- READMEs rewritten from a fresh-user cognitive walkthrough: numbered
+  Quickstart with the **start-a-NEW-session** warning (hooks load at session
+  start — the #1 silent-failure path), hooks-approval heads-up, a 10-second
+  verify-it-records step, requirements line, Troubleshooting section,
+  uninstall FAQ, Marketplace links, session-concept definition.
+
 ## [0.3.0] — 2026-06-11
 
 ### Added

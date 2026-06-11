@@ -29,8 +29,11 @@ export { buildRecordFromPayload, ingest } from './hooks/ingest.js';
 export type { IngestContext, IngestResult } from './hooks/ingest.js';
 export { hookPayloadSchema, parseHookPayload, responseText } from './hooks/payloads.js';
 export type { HookPayload } from './hooks/payloads.js';
-export { HOOK_COMMAND, installHooks } from './hooks/install.js';
-export type { InstallResult } from './hooks/install.js';
+export { HOOK_COMMAND, installHooks, installedHookEvents, uninstallHooks } from './hooks/install.js';
+export type { InstallResult, UninstallResult } from './hooks/install.js';
+
+export { runDoctor } from './doctor/doctor.js';
+export type { DoctorCheck, DoctorStatus } from './doctor/doctor.js';
 
 export { createCheckpoint, listCheckpoints, restoreCommand } from './checkpoint/checkpoints.js';
 export type { Checkpoint, CheckpointOutcome } from './checkpoint/checkpoints.js';

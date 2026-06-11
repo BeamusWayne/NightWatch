@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="940" height="760" viewBox="0 0 940 760" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace">
+  <style>
+    text { font-size: 13px; white-space: pre; }
+    .p   { fill: #c9d1d9; }
+    .h1  { fill: #f0f6fc; font-weight: 700; font-size: 15px; }
+    .h2  { fill: #79c0ff; font-weight: 700; }
+    .red { fill: #f85149; }
+    .yel { fill: #e3b341; }
+    .grn { fill: #56d364; }
+    .cmd { fill: #8b949e; }
+  </style>
+  <rect width="940" height="760" rx="10" fill="#0d1117" stroke="#30363d"/>
+  <circle cx="24" cy="22" r="6" fill="#ff5f57"/><circle cx="44" cy="22" r="6" fill="#febc2e"/><circle cx="64" cy="22" r="6" fill="#28c840"/>
+  <text x="470" y="26" text-anchor="middle" fill="#8b949e" font-size="12">nightwatch — morning debrief</text>
+    <text x="24" y="64" class="cmd">$ nightwatch demo</text>
+  <text x="24" y="85" class="p"></text>
+  <text x="24" y="106" class="h1"># 🌙 NightWatch Debrief</text>
+  <text x="24" y="127" class="p"></text>
+  <text x="24" y="148" class="p">- **Session**: `demo-overnight-1842`</text>
+  <text x="24" y="169" class="p">- **Model**: claude-fable-5</text>
+  <text x="24" y="190" class="p">- **Duration**: 8.5h · 13 events · 10 tool calls</text>
+  <text x="24" y="211" class="p">- **Declared goal**: Fix the UTC rollover bug in src/utils/date.ts and get the date suite green. Stay within src/** and tests/**.</text>
+  <text x="24" y="232" class="p">- **Generated**: 2026-06-11T03:02:06.115Z</text>
+  <text x="24" y="253" class="p"></text>
+  <text x="24" y="274" class="h2">## Verdict</text>
+  <text x="24" y="295" class="p"></text>
+  <text x="24" y="316" class="yel">⚠️ 2 finding(s) need your attention before trusting this run.</text>
+  <text x="24" y="337" class="p"></text>
+  <text x="24" y="358" class="h2">## Ledger integrity</text>
+  <text x="24" y="379" class="p"></text>
+  <text x="24" y="400" class="grn">✅ hash chain intact (13 records)</text>
+  <text x="24" y="421" class="p"></text>
+  <text x="24" y="442" class="h2">## Timeline</text>
+  <text x="24" y="463" class="p"></text>
+  <text x="24" y="484" class="p">- `22:06–22:09` **read** ×2 @ `src` — src/utils/date.ts, src</text>
+  <text x="24" y="505" class="p">- `22:41–22:41` **exec** ×1 @ `exec` — npx vitest run tests/date.test.ts</text>
+  <text x="24" y="526" class="p">- `23:18–23:18` **write** ×1 @ `src` — src/utils/date.ts</text>
+  <text x="24" y="547" class="p">  …</text>
+  <text x="24" y="568" class="p"></text>
+  <text x="24" y="589" class="h2">## Scope check</text>
+  <text x="24" y="610" class="p"></text>
+  <text x="24" y="631" class="p">- Declared scope: `src/**`, `tests/**`</text>
+  <text x="24" y="652" class="p">- 4 file(s) actually changed</text>
+  <text x="24" y="673" class="p">- 50% inside declared scope</text>
+  <text x="24" y="694" class="yel">- OUT OF SCOPE: ⚠️ `infra/deploy.yaml`, `scripts/hotfix.sh`</text>
+  <text x="24" y="715" class="yel">- CHANGED BUT NEVER CLAIMED (out-of-band writes): ⚠️ `scripts/hotfix.sh`</text>
+</svg>

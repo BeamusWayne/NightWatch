@@ -59,6 +59,50 @@ function containsNightwatchCommand(entry: HookEntry): boolean {
   return (entry.hooks ?? []).some(hook => typeof hook.command === 'string' && hook.command.includes(COMMAND_MARKER));
 }
 
+export interface UninstallResult {
+  readonly settingsPath: string;
+  readonly removed: readonly string[];
+}
+
+/** Exact inverse of installHooks: ours go, every foreign hook stays untouched. */
+export function uninstallHooks(projectRoot: string): UninstallResult {
+  const settingsPath = join(projectRoot, '.claude', 'settings.json');
+  if (!existsSync(settingsPath)) return { settingsPath, removed: [] };
+
+  const settings = readSettings(settingsPath);
+  const hooks: Record<string, HookEntry[]> = { ...(settings.hooks ?? {}) };
+  const removed: string[] = [];
+
+  for (const [event, entries] of Object.entries(hooks)) {
+    const kept = entries.filter(entry => !containsNightwatchCommand(entry));
+    if (kept.length === entries.length) continue;
+    removed.push(event);
+    if (kept.length === 0) delete hooks[event];
+    else hooks[event] = kept;
+  }
+
+  if (removed.length > 0) {
+    const next: SettingsShape = { ...settings, hooks };
+    if (Object.keys(hooks).length === 0) delete next.hooks;
+    writeFileSync(settingsPath, `${JSON.stringify(next, null, 2)}\n`, 'utf8');
+  }
+  return { settingsPath, removed };
+}
+
+/** Hook events that currently carry a NightWatch entry (doctor uses this). */
+export function installedHookEvents(projectRoot: string): readonly string[] {
+  const settingsPath = join(projectRoot, '.claude', 'settings.json');
+  if (!existsSync(settingsPath)) return [];
+  try {
+    const settings = readSettings(settingsPath);
+    return Object.entries(settings.hooks ?? {})
+      .filter(([, entries]) => entries.some(containsNightwatchCommand))
+      .map(([event]) => event);
+  } catch {
+    return [];
+  }
+}
+
 function readSettings(settingsPath: string): SettingsShape {
   if (!existsSync(settingsPath)) return {};
   const raw = readFileSync(settingsPath, 'utf8');
