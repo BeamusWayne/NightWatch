@@ -22,7 +22,14 @@ import { describeError } from './util/errors.js';
 import { realExec } from './util/exec.js';
 
 const program = new Command();
-program.name('nightwatch').description('Black box recorder and morning debrief for overnight AI agent runs.');
+const pkg = JSON.parse(readFileSync(fileURLToPath(new URL('../package.json', import.meta.url)), 'utf8')) as {
+  version: string;
+};
+
+program
+  .name('nightwatch')
+  .description('Black box recorder and morning debrief for overnight AI agent runs.')
+  .version(pkg.version);
 
 program
   .command('init')

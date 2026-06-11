@@ -108,6 +108,33 @@ jobs:
 
 `nightwatch attest` 在以下情况返回非零:哈希链断裂或被截断 · 任何签名无效 · **任何变更文件没有台账主张背书**(`UNDECLARED_CHANGE`——核心闸门)· 变更超出声明范围。警告(密钥前的未签名记录、最后一次测试记录为失败)默认放行,`--strict` 收紧。`--json` 输出机器可读裁决;本地模式同样可用:在任何被记录的项目里 `nightwatch attest --base origin/main`。
 
+## 签名 — 从"可检测篡改"到"抗篡改"
+
+哈希链只能*检测*修改:拿到整块磁盘的攻击者可以整本重写、重新链接。配上密钥后,被重写的记录无法重新签名:
+
+```bash
+nightwatch keygen     # P-256 密钥对写入 .nightwatch/keys/(私钥 chmod 0600)
+# …… 此后每条追加记录都带有对记录哈希的 ECDSA 签名 ……
+nightwatch verify     # 链完整: N 条 ✅  +  signed: n/m verified ✅
+```
+
+密钥之前的旧记录算警告不算失败。密钥文件损坏或被清空时,追加会**响亮地失败**(溢出 + 晨报标记),而不是静默降级成无签名。轮换是刻意破坏性的:`keygen --force` 会让旧签名全部失效,`verify` 会直说。面对"敌意 Agent"级威胁模型,请把私钥放在录制机器之外;终极形态是路线图上的远程链头锚定。
+
+## 给 Agent 的 PR 附上回执
+
+让"没有回执,不进 review"落地的端到端流程:
+
+```bash
+# 1. Agent 在已 nightwatch init 的项目里被记录着干活。
+# 2. 开 PR 前,把会话台账作为回执附进分支:
+cp .nightwatch/ledger/<session>.jsonl .nightwatch-receipt.jsonl
+git add .nightwatch-receipt.jsonl
+git commit -m "chore: attach run receipt"
+# 3. attest workflow(见上文)会拒绝任何"变更文件无主张背书"的 PR。
+```
+
+回执文件本身(以及保持 gitignore 的整个 `.nightwatch/`)不参与对账闸门——回执是一份显式、可审阅的拷贝,不是活的存储。
+
 ## 工作原理
 
 ```
@@ -153,11 +180,32 @@ nightwatch debrief    链校验 + 主张重跑 + 范围比对 → 晨报
 | `nightwatch init [--goal] [--scope ...]` | 安装 hooks、创建存储、写 gitignore |
 | `nightwatch hook` | (hooks 调用)从 stdin 摄入一条事件,永远 exit 0 |
 | `nightwatch status` | 会话摘要 + 链状态 |
-| `nightwatch debrief [--verify] [--lang zh] [--md f]` | 晨报 |
-| `nightwatch verify` | 快速链完整性检查 |
+| `nightwatch debrief [--verify] [--last-n N] [--lang zh] [--md f]` | 晨报;`--verify` 重跑记录过的测试命令 |
+| `nightwatch verify` | 快速检查:链完整性 + 签名(有密钥时) |
+| `nightwatch attest [--ledger f] [--base ref] [--changed ...] [--scope ...] [--pubkey f] [--root p] [--strict] [--json]` | CI 门禁:回执能否为这组变更背书?拒绝时返回非零 |
+| `nightwatch keygen [--force]` | 生成 P-256 签名密钥;此后所有追加记录带签名 |
 | `nightwatch checkpoint [-m note]` | 手动工作区快照 |
-| `nightwatch rollback <seq> [--apply]` | 恢复检查点 |
+| `nightwatch rollback <seq> [--apply]` | 恢复检查点(默认演练模式) |
 | `nightwatch demo [--lang zh]` | 重放内置通宵运行 |
+| `nightwatch --version` | 打印版本号 |
+
+## 常见问题
+
+**记录会拖慢 Agent 吗?** 每个 hook 事件只起一个短命 node 进程,且 fail-open。较重的检查点只在会话开始和每轮结束时跑,不跟随工具调用。
+
+**我的提示词和代码会进台账吗?** 不会。台账只存 SHA-256 摘要和脱敏后的短预览(≤240 字符)。手里有 transcript 的人能证明它与台账一致;没有的人从台账里拿不到提示词和密钥。
+
+**项目不是 git 仓库怎么办?** 记录和晨报完全可用;检查点和 git 基准对账优雅降级,报告里会明确标注。
+
+**一个项目多个会话?** 每个会话一本台账。所有命令支持 `--session`,默认取最近一次。
+
+**运行崩了 / 被我杀了,台账还能用吗?** 能——只追加结构意味着崩溃前的每条记录都完整可验,最后一个检查点就是恢复锚点。没写进去的事件(锁超时、磁盘满)会停在 `.nightwatch/spill/` 并被晨报标记。
+
+**Agent 能篡改自己的台账吗?** 它可以试:任何修改或截断都会打断哈希链并被报告;开了签名后,重写的记录也无法重新签名。诚实的边界:同时拿到你磁盘**和**私钥的攻击者会赢——见上文威胁模型。
+
+**只支持 Claude Code 吗?** 目前记录适配器是。台账/核验/晨报核心消费的是中立记录;给其他 harness 的 `nightwatch emit` JSON 入口是路线图下一项。
+
+**能手工读台账吗?** 纯 JSONL:`jq . .nightwatch/ledger/<session>.jsonl`——每条记录自描述。
 
 ## 路线图
 

@@ -115,6 +115,33 @@ jobs:
 
 `nightwatch attest` exits non-zero when: the hash chain is broken or truncated · any signature is invalid · **any changed file has no ledger claim backing it** (`UNDECLARED_CHANGE` — the core gate) · a change lands outside the declared scope. Warnings (unsigned pre-key records, a final failing test claim) pass unless `--strict`. `--json` emits the machine-readable verdict; local store mode works too: `nightwatch attest --base origin/main` inside any recorded project.
 
+## Signing — from tamper-evident to tamper-resistant
+
+The hash chain alone *detects* edits, but an attacker with full disk access can rewrite and re-link the whole file. With a key, re-hashed records can't be re-signed:
+
+```bash
+nightwatch keygen     # P-256 keypair in .nightwatch/keys/ (private key chmod 0600)
+# ... every append from now on carries an ECDSA signature over the record hash ...
+nightwatch verify     # chain intact: N records ✅  +  signed: n/m verified ✅
+```
+
+Unsigned records that predate the key are warnings, not errors. A corrupt or emptied key file makes appends **fail loudly** (spilled + surfaced in the debrief) instead of silently downgrading to unsigned. Rotation is destructive by design: `keygen --force` orphans old signatures and `verify` says so. For hostile-agent threat models, keep the private key off the recording box and treat remote chain-tip anchoring (roadmap) as the end state.
+
+## Shipping a receipt with an agent PR
+
+The end-to-end flow that makes "no receipt, no review" real:
+
+```bash
+# 1. The agent works in a recorded project (nightwatch init was run once).
+# 2. Before opening the PR, attach the session ledger as the receipt:
+cp .nightwatch/ledger/<session>.jsonl .nightwatch-receipt.jsonl
+git add .nightwatch-receipt.jsonl
+git commit -m "chore: attach run receipt"
+# 3. The attest workflow (above) refuses the PR if any changed file lacks a claim.
+```
+
+The receipt file itself (and everything under `.nightwatch/`, which stays gitignored) is exempt from the diff gate — the receipt is an explicit, reviewable copy, not a live store.
+
 ## How it works
 
 ```
@@ -160,11 +187,32 @@ The record shape is designed to map onto the direction of [IETF draft-sharif-age
 | `nightwatch init [--goal] [--scope ...]` | install hooks, create store, gitignore entry |
 | `nightwatch hook` | (called by hooks) ingest one event from stdin, always exit 0 |
 | `nightwatch status` | session summary + chain status |
-| `nightwatch debrief [--verify] [--lang zh] [--md f]` | the morning report |
-| `nightwatch verify` | fast chain-integrity pass |
+| `nightwatch debrief [--verify] [--last-n N] [--lang zh] [--md f]` | the morning report; `--verify` re-runs claimed test commands |
+| `nightwatch verify` | fast pass: chain integrity + signatures (when keyed) |
+| `nightwatch attest [--ledger f] [--base ref] [--changed ...] [--scope ...] [--pubkey f] [--root p] [--strict] [--json]` | CI gate: does the receipt vouch for this change set? non-zero exit on refusal |
+| `nightwatch keygen [--force]` | generate P-256 signing keys; all later appends are signed |
 | `nightwatch checkpoint [-m note]` | manual worktree snapshot |
-| `nightwatch rollback <seq> [--apply]` | restore a checkpoint |
+| `nightwatch rollback <seq> [--apply]` | restore a checkpoint (dry-run by default) |
 | `nightwatch demo [--lang zh]` | replay the bundled overnight run |
+| `nightwatch --version` | print version |
+
+## FAQ
+
+**Does recording slow my agent down?** One short-lived node process per hook event, fail-open by construction. Checkpoints (the only heavier step) run at session start and turn end, not per tool call.
+
+**Do my prompts or code end up in the ledger?** No. The ledger stores SHA-256 digests plus short, credential-redacted previews (≤240 chars). With the transcript in hand you can prove it matches the ledger; without it, the ledger leaks neither prompts nor secrets.
+
+**What if my project isn't a git repo?** Recording and debriefs work fully; checkpoints and the git ground-truth comparison degrade gracefully with an explicit notice in the report.
+
+**Multiple sessions in one project?** One ledger per session id. Every command takes `--session`; the most recent session is the default.
+
+**The run crashed / I killed it. Is the ledger usable?** Yes — it's append-only, so everything up to the kill is intact and verifiable, and the last checkpoint gives you a restore point. Events that could not be appended (lock timeout, full disk) are parked in `.nightwatch/spill/` and surfaced as a finding.
+
+**Can the agent tamper with its own ledger?** It can try; any edit or truncation breaks the hash chain and is reported. With signing enabled it also can't re-sign what it rewrites. The honest limit: an attacker with your disk *and* your private key wins — see the threat model above.
+
+**Is this Claude Code–only?** The recording adapter is, today. The ledger/verify/debrief core consumes neutral records; a `nightwatch emit` JSON entry point for other harnesses is the next roadmap item.
+
+**Can I read the ledger by hand?** It's plain JSONL: `jq . .nightwatch/ledger/<session>.jsonl` — every record is self-describing.
 
 ## Roadmap
 
