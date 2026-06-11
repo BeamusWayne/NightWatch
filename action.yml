@@ -10,7 +10,16 @@ inputs:
     required: true
   base:
     description: 'Base git ref to diff against (e.g. origin/main or the PR base)'
-    required: true
+    required: false
+    default: ''
+  changed:
+    description: 'Explicit space-separated changed-file list (overrides base)'
+    required: false
+    default: ''
+  root:
+    description: 'Project root the receipt was recorded under (legacy absolute-path receipts)'
+    required: false
+    default: ''
   scope:
     description: 'Space-separated scope globs the change must stay inside (optional)'
     required: false
@@ -37,7 +46,19 @@ runs:
     - name: Attest the change set against the ledger
       shell: bash
       run: |
-        ARGS=(--ledger "${{ inputs.ledger }}" --base "${{ inputs.base }}")
+        ARGS=(--ledger "${{ inputs.ledger }}")
+        if [ -n "${{ inputs.changed }}" ]; then
+          # shellcheck disable=SC2206
+          ARGS+=(--changed ${{ inputs.changed }})
+        elif [ -n "${{ inputs.base }}" ]; then
+          ARGS+=(--base "${{ inputs.base }}")
+        else
+          echo "::error::either 'base' or 'changed' must be provided" >&2
+          exit 1
+        fi
+        if [ -n "${{ inputs.root }}" ]; then
+          ARGS+=(--root "${{ inputs.root }}")
+        fi
         if [ -n "${{ inputs.scope }}" ]; then
           # shellcheck disable=SC2206
           ARGS+=(--scope ${{ inputs.scope }})

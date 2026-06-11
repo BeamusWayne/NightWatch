@@ -33,3 +33,21 @@ jobs:
             --root /Users/katya/Files/TestField/NightWatch \
             --changed $CHANGED \
             --scope "src/**" "tests/**" "CHANGELOG.md"
+
+  attest-via-marketplace-action:
+    # E2E for the composite action itself: same archived receipt, but through
+    # action.yml + the npm-published CLI — the exact path Marketplace users take.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: files
+        run: echo "list=$(git diff-tree --no-commit-id --name-only -r cd1c102 | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
+      - uses: ./
+        with:
+          ledger: docs/runs/2026-06-10-ecdsa-self-implementation/ledger.jsonl
+          changed: ${{ steps.files.outputs.list }}
+          root: /Users/katya/Files/TestField/NightWatch
+          scope: 'src/** tests/** CHANGELOG.md'
+          version: '0.4.0'
