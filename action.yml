@@ -1,8 +1,5 @@
 name: 'NightWatch Attest'
-description: >-
-  Gate AI-authored pull requests on a verifiable run ledger: intact hash chain,
-  valid signatures, and every changed file backed by a ledger claim.
-  No receipt, no review.
+description: 'Gate AI-authored PRs on a verifiable run ledger — no receipt, no review.'
 branding:
   icon: 'moon'
   color: 'purple'
