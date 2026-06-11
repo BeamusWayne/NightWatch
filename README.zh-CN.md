@@ -53,7 +53,7 @@ nightwatch demo            # English report
 
 最后一行就是全部意义所在:Agent 用裸 shell 重定向改了 `scripts/hotfix.sh`——没走结构化编辑工具,总结里也只字未提。台账没有这条主张,**但 git 有**。NightWatch 暴露的正是这种"叙事与事实的分歧"。
 
-> **首次实录运行**:一个 Fable 5 会话在无人值守下给本仓库自己实现了 ECDSA 签名——94 条哈希链记录、9 条测试主张全部重放核验、顺手抓出记录器自身三个 bug。原始台账与双语晨报全部公开:[docs/runs/2026-06-10-ecdsa-self-implementation](./docs/runs/2026-06-10-ecdsa-self-implementation/)。
+> **首次实录运行**:一个 Fable 5 会话在无人值守下给本仓库自己实现了 ECDSA 签名——94 条哈希链记录、9 条测试主张全部重放核验、头两次 dogfood 实录共抓出**记录器自身五个 bug**——包括第二次运行的"日记分裂"(记录器跟着 Agent 的 `cd` 搬进了子目录)。原始台账与未修饰晨报全部公开:[docs/runs/](./docs/runs/)。
 
 ## 快速开始(真实会话)
 
@@ -170,7 +170,7 @@ nightwatch debrief    链校验 + 主张重跑 + 范围比对 → 晨报
 
 ```bash
 npm install
-npm run typecheck && npm test     # 46 个测试,行覆盖率 ~90%
+npm run typecheck && npm test     # 89 个测试,行覆盖率 ~91%
 npm run build && node dist/cli.js demo --lang zh
 ```
 

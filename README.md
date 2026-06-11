@@ -60,7 +60,7 @@ What the morning debrief looks like (real output):
 
 That last line is the point: the agent edited `scripts/hotfix.sh` through a raw shell redirect — no structured edit tool, no mention in the summary. The ledger didn't claim it; **git did**. NightWatch surfaces exactly that disagreement.
 
-> **First recorded production run:** a Fable 5 session implementing this repo's own ECDSA signing, unattended — 94 hash-chained records, all 9 test claims replay-verified, and three bugs in the recorder itself caught in the process. The raw ledger and both debriefs are public: [docs/runs/2026-06-10-ecdsa-self-implementation](./docs/runs/2026-06-10-ecdsa-self-implementation/).
+> **First recorded production run:** a Fable 5 session implementing this repo's own ECDSA signing, unattended — 94 hash-chained records, all 9 test claims replay-verified, and **five recorder bugs caught across the first two dogfooding runs** — including the second run's "split diary" (the recorder followed the agent's `cd` into a subdirectory). Raw ledgers and unretouched debriefs: [docs/runs/](./docs/runs/).
 
 ## Quickstart (real sessions)
 
@@ -177,7 +177,7 @@ The record shape is designed to map onto the direction of [IETF draft-sharif-age
 
 ```bash
 npm install
-npm run typecheck && npm test     # 46 tests, ~90% line coverage
+npm run typecheck && npm test     # 89 tests, ~91% line coverage
 npm run build && node dist/cli.js demo
 ```
 
