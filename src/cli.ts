@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
 import { attest } from './attest/attest.js';
+import { toTrustReport } from './attest/trustReport.js';
 import { createCheckpoint, isAutoCheckpointEvent, listCheckpoints, restoreCommand } from './checkpoint/checkpoints.js';
 import { generateKeyPair, verifyLedgerSignatures } from './core/signing.js';
 import { renderMarkdown, renderTerminal } from './debrief/render.js';
@@ -11,7 +12,13 @@ import type { Lang } from './debrief/i18n.js';
 import { buildDebrief } from './debrief/report.js';
 import { runDemo } from './demo.js';
 import { ingest } from './hooks/ingest.js';
-import { installHooks, uninstallHooks } from './hooks/install.js';
+import {
+  SUPPORTED_AGENTS,
+  installAlfredHooks,
+  installHooks,
+  uninstallAlfredHooks,
+  uninstallHooks,
+} from './hooks/install.js';
 import { runDoctor } from './doctor/doctor.js';
 import { parseHookPayload } from './hooks/payloads.js';
 import { loadHead, parseLedgerLines, readLedger, verifyChain } from './store/ledger.js';
@@ -34,10 +41,19 @@ program
 
 program
   .command('init')
-  .description('install Claude Code hooks and create the .nightwatch/ store in this project')
+  .description('install agent hooks (Claude Code or Alfred) and create the .nightwatch/ store')
   .option('--goal <text>', 'declared goal for upcoming runs')
   .option('--scope <globs...>', 'path globs the agent is expected to stay inside (e.g. "src/**")')
-  .action((options: { goal?: string; scope?: string[] }) => {
+  .option(
+    '--agent <name>',
+    `harness to wire up: ${SUPPORTED_AGENTS.join(' | ')}`,
+    'claude-code',
+  )
+  .action((options: { goal?: string; scope?: string[]; agent: string }) => {
+    if (!(SUPPORTED_AGENTS as readonly string[]).includes(options.agent)) {
+      console.error(`unknown agent "${options.agent}" — supported: ${SUPPORTED_AGENTS.join(', ')}`);
+      process.exit(1);
+    }
     const root = process.cwd();
     const paths = storePathsAt(root);
     ensureStore(paths);
@@ -47,17 +63,21 @@ program
       ...(options.scope !== undefined ? { scope: options.scope } : {}),
       createdAt: new Date().toISOString(),
     });
-    const result = installHooks(root);
+    const result = options.agent === 'alfred' ? installAlfredHooks(root) : installHooks(root);
     console.log(`store:    ${paths.root}`);
     console.log(`settings: ${result.settingsPath}`);
     if (result.added.length > 0) console.log(`hooks added: ${result.added.join(', ')}`);
     if (result.alreadyPresent.length > 0) console.log(`already installed: ${result.alreadyPresent.join(', ')}`);
-    console.log('\nNightWatch is recording. Tomorrow morning: `nightwatch debrief`');
+    if (options.agent === 'alfred') {
+      console.log('\nNightWatch is recording Alfred (≥ 0.7) sessions. Afterwards: `nightwatch debrief`');
+    } else {
+      console.log('\nNightWatch is recording. Tomorrow morning: `nightwatch debrief`');
+    }
   });
 
 program
   .command('hook')
-  .description('(used by Claude Code hooks) ingest one event from stdin; always exits 0')
+  .description('(used by agent hooks) ingest one event from stdin; always exits 0')
   .action(async () => {
     // FAIL-OPEN: this command must never break the host session. Any failure
     // is recorded in .nightwatch/errors.log by ingest(); we still exit 0.
@@ -74,7 +94,10 @@ program
       } catch {
         root = cwd; // first-ever event: the store is born at the session cwd
       }
-      const result = await ingest(payload, root, { now: () => new Date(), harness: 'claude-code', root });
+      // Alfred (≥ 0.7) emits the same payload shape with `alfred-` session ids;
+      // record the harness truthfully so the debrief names its witness.
+      const harness = payload.session_id.startsWith('alfred-') ? 'alfred' : 'claude-code';
+      const result = await ingest(payload, root, { now: () => new Date(), harness, root });
       if (result.status === 'appended' && isAutoCheckpointEvent(payload.hook_event_name)) {
         createCheckpoint(
           storePathsAt(root),
@@ -217,6 +240,7 @@ program
   .option('--root <path>', 'project root the receipt was recorded under (relativizes legacy absolute claim paths)')
   .option('--strict', 'treat warnings as failures', false)
   .option('--json', 'machine-readable verdict on stdout', false)
+  .option('--trust-report <file>', 'also write the verdict as a cross-tool Trust Report v0 JSON')
   .action(
     (options: {
       ledger?: string;
@@ -228,6 +252,7 @@ program
       root?: string;
       strict: boolean;
       json: boolean;
+      trustReport?: string;
     }) => {
       const receipt = resolveAttestInputs(options);
       const changedFiles =
@@ -244,6 +269,15 @@ program
         strict: options.strict,
       });
 
+      if (options.trustReport !== undefined) {
+        const report = toTrustReport(verdict, {
+          producerVersion: pkg.version,
+          subjectId: receipt.records[0]?.session ?? options.ledger ?? 'unknown',
+          now: () => new Date(),
+        });
+        writeFileSync(options.trustReport, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+        console.error(`trust report → ${options.trustReport}`);
+      }
       if (options.json) {
         console.log(JSON.stringify(verdict, null, 2));
       } else {
@@ -264,13 +298,17 @@ program
 
 program
   .command('uninstall')
-  .description('remove NightWatch hooks from .claude/settings.json (foreign hooks untouched)')
+  .description('remove NightWatch hooks from .claude/settings.json and .alfred/hooks.json (foreign hooks untouched)')
   .option('--purge', 'also delete the .nightwatch/ store (ledgers, checkpoints metadata, keys)', false)
   .action((options: { purge: boolean }) => {
     const root = process.cwd();
-    const result = uninstallHooks(root);
-    if (result.removed.length > 0) console.log(`hooks removed: ${result.removed.join(', ')}`);
-    else console.log('no NightWatch hooks found in .claude/settings.json');
+    const claude = uninstallHooks(root);
+    const alfred = uninstallAlfredHooks(root);
+    if (claude.removed.length > 0) console.log(`claude-code hooks removed: ${claude.removed.join(', ')}`);
+    if (alfred.removed.length > 0) console.log(`alfred hooks removed: ${alfred.removed.join(', ')}`);
+    if (claude.removed.length === 0 && alfred.removed.length === 0) {
+      console.log('no NightWatch hooks found in .claude/settings.json or .alfred/hooks.json');
+    }
     if (options.purge) {
       rmSync(storePathsAt(root).root, { recursive: true, force: true });
       console.log('.nightwatch/ store deleted');

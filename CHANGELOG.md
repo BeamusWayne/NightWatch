@@ -3,6 +3,32 @@
 The format follows [Keep a Changelog](https://keepachangelog.com/) and the
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.5.0] — 2026-06-13
+
+NightWatch joins the [Agent Trust Layer](https://github.com/BeamusWayne/agent-trust-layer)
+ecosystem: one recorder, two harnesses, one cross-tool report format.
+
+### Added
+- **`nightwatch init --agent alfred`** — wire the recorder into
+  [Alfred](https://github.com/BeamusWayne/Alfred) (≥ 0.7) via
+  `.alfred/hooks.json`. Alfred emits Claude Code-compatible hook payloads, so
+  the same `nightwatch hook` ingest records both harnesses; the ledger's
+  `agent.harness` field says which one truthfully (detected from the session
+  id). `uninstall` removes both installs; `doctor` reports either.
+- **`nightwatch attest --trust-report <file>`** — emit the attest verdict as
+  an Agent Trust Report v0 (`{verdict, checks[]}`), the same cross-tool JSON
+  Alfred's `ledger verify --trust-report` and trace-vault's
+  `gate --trust-report` produce. One CI consumer for all three gates.
+
+### Fixed
+- **Interop bug #6 (dogfooding count: six).** The first recorded Alfred run
+  ended in `attest` REFUSING the change: Alfred's `file_write`/`file_edit`
+  tools weren't in the classifier, so no `file_change` claim was extracted
+  and the changed file looked undeclared. Claim extraction is now
+  class-driven — any structured write tool claims its target path — and the
+  classifier knows Alfred's tool vocabulary (`file_read`, `file_edit`,
+  `file_write`, `web_fetch`, `spawn_subagent`, `memory_search`).
+
 ## [0.4.0] — 2026-06-11
 
 ### Added

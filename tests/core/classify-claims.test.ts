@@ -12,6 +12,14 @@ describe('classifyTool', () => {
     expect(classifyTool('SomethingNew', {})).toBe('other');
   });
 
+  it("maps Alfred's tool vocabulary (interop bug #6)", () => {
+    expect(classifyTool('file_read', {})).toBe('read');
+    expect(classifyTool('file_edit', {})).toBe('write');
+    expect(classifyTool('file_write', {})).toBe('write');
+    expect(classifyTool('web_fetch', {})).toBe('net');
+    expect(classifyTool('spawn_subagent', {})).toBe('agent');
+  });
+
   it('sniffs bash commands', () => {
     expect(classifyBashCommand('git commit -m "x"')).toBe('vcs');
     expect(classifyBashCommand('npm test && git push origin main')).toBe('vcs');
@@ -33,6 +41,15 @@ describe('extractClaims', () => {
   it('extracts file_change from structured edit tools', () => {
     expect(extractClaims('Edit', { file_path: 'src/a.ts' }, '')).toEqual([
       { type: 'file_change', path: 'src/a.ts', via: 'Edit' },
+    ]);
+  });
+
+  it("extracts file_change from Alfred's write tools — attest must see Alfred's edits (bug #6)", () => {
+    expect(extractClaims('file_write', { path: 'add.ts', content: '…' }, '')).toEqual([
+      { type: 'file_change', path: 'add.ts', via: 'file_write' },
+    ]);
+    expect(extractClaims('file_edit', { path: 'src/a.ts' }, '')).toEqual([
+      { type: 'file_change', path: 'src/a.ts', via: 'file_edit' },
     ]);
   });
 

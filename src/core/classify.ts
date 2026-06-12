@@ -8,6 +8,7 @@ import type { ActionClass } from './record.js';
  */
 
 const TOOL_CLASS: Readonly<Record<string, ActionClass>> = Object.freeze({
+  // Claude Code tool names
   read: 'read',
   glob: 'read',
   grep: 'read',
@@ -20,6 +21,15 @@ const TOOL_CLASS: Readonly<Record<string, ActionClass>> = Object.freeze({
   websearch: 'net',
   agent: 'agent',
   task: 'agent',
+  // Alfred (>= 0.7) tool names — same hook payloads, different vocabulary.
+  // Found by the first recorded Alfred run: attest refused `add.ts` because
+  // file_write produced no file_change claim (interop bug #6).
+  file_read: 'read',
+  file_edit: 'write',
+  file_write: 'write',
+  web_fetch: 'net',
+  spawn_subagent: 'agent',
+  memory_search: 'read',
 });
 
 const VCS_RE = /(?:^|[;&|]\s*)git\s+(commit|push|merge|rebase|reset|checkout|restore|revert|cherry-pick|tag|stash)\b/;

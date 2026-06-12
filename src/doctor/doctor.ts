@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { installedHookEvents } from '../hooks/install.js';
+import { installedAlfredHookEvents, installedHookEvents } from '../hooks/install.js';
 import { loadHead, readLedger, verifyChain } from '../store/ledger.js';
 import { STORE_DIRNAME, storePathsAt } from '../store/paths.js';
 import { realExec } from '../util/exec.js';
@@ -38,12 +38,19 @@ export function runDoctor(projectRoot: string, exec: ExecFn = realExec): readonl
       : { name: 'git', status: 'warn', detail: 'no git repo here — recording works; checkpoints and scope diffs degrade' },
   );
 
-  const events = installedHookEvents(projectRoot);
+  // Either harness counts: a project records via Claude Code, Alfred, or both.
+  const claudeEvents = installedHookEvents(projectRoot);
+  const alfredEvents = installedAlfredHookEvents(projectRoot);
+  const harnesses = [
+    claudeEvents.length > 0 ? `claude-code (${claudeEvents.length} events)` : '',
+    alfredEvents.length > 0 ? `alfred (${alfredEvents.length} events)` : '',
+  ].filter(Boolean);
+  const fullyInstalled = claudeEvents.length >= 5 || alfredEvents.length >= 5;
   checks.push(
-    events.length >= 5
-      ? { name: 'hooks', status: 'ok', detail: `installed for ${events.length} events` }
-      : events.length > 0
-        ? { name: 'hooks', status: 'warn', detail: `only ${events.length}/5 events carry a NightWatch hook — re-run \`nightwatch init\`` }
+    fullyInstalled
+      ? { name: 'hooks', status: 'ok', detail: `installed — ${harnesses.join(' · ')}` }
+      : harnesses.length > 0
+        ? { name: 'hooks', status: 'warn', detail: `partial install (${harnesses.join(' · ')}) — re-run \`nightwatch init\`` }
         : { name: 'hooks', status: 'fail', detail: 'not installed — run `nightwatch init` (then START A NEW SESSION)' },
   );
 

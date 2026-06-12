@@ -32,7 +32,11 @@ export function extractClaims(
   const cls = classifyTool(toolName, input);
   const normalized = toolName.toLowerCase();
 
-  if (normalized === 'write' || normalized === 'edit' || normalized === 'multiedit' || normalized === 'notebookedit') {
+  // Any structured write tool claims its target file — class-driven, so
+  // Claude Code's Edit/Write and Alfred's file_edit/file_write (input key
+  // `path`) extract identically. Bash stays special below: its writes hide
+  // in command text, not in a path argument.
+  if (cls === 'write' && normalized !== 'bash') {
     const path = firstString(input, ['file_path', 'notebook_path', 'path']);
     return path ? [{ type: 'file_change', path, via: toolName }] : [];
   }

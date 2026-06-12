@@ -67,12 +67,13 @@ That last line is the point: the agent edited `scripts/hotfix.sh` through a raw 
 
 ## Quickstart (real sessions)
 
-**Requirements:** Node ≥ 20 · current [Claude Code](https://claude.com/claude-code) (the recording adapter — **any model it runs is fine**) · git recommended (checkpoints and ground-truth diffs degrade gracefully without it). Tested on macOS/Linux; Windows untested.
+**Requirements:** Node ≥ 20 · a supported harness — current [Claude Code](https://claude.com/claude-code) or [Alfred](https://github.com/BeamusWayne/Alfred) ≥ 0.7 (**any model either runs is fine**) · git recommended (checkpoints and ground-truth diffs degrade gracefully without it). Tested on macOS/Linux; Windows untested.
 
 ```bash
 cd your-project
 nightwatch init --goal "Migrate utils to strict TS" --scope "src/**" "tests/**"
 # → installs Claude Code hooks into .claude/settings.json (idempotent, preserves yours)
+# recording Alfred instead?  nightwatch init --agent alfred  → wires .alfred/hooks.json
 ```
 
 Then, in order — **step 1 is the one everyone misses**:
@@ -129,7 +130,22 @@ jobs:
 
 The Action is live on the [GitHub Marketplace](https://github.com/marketplace/actions/nightwatch-attest).
 
-`nightwatch attest` exits non-zero when: the hash chain is broken or truncated · any signature is invalid · **any changed file has no ledger claim backing it** (`UNDECLARED_CHANGE` — the core gate) · a change lands outside the declared scope. Warnings (unsigned pre-key records, a final failing test claim) pass unless `--strict`. `--json` emits the machine-readable verdict; local store mode works too: `nightwatch attest --base origin/main` inside any recorded project.
+`nightwatch attest` exits non-zero when: the hash chain is broken or truncated · any signature is invalid · **any changed file has no ledger claim backing it** (`UNDECLARED_CHANGE` — the core gate) · a change lands outside the declared scope. Warnings (unsigned pre-key records, a final failing test claim) pass unless `--strict`. `--json` emits the machine-readable verdict; `--trust-report <file>` writes it as a cross-tool [Agent Trust Report v0](https://github.com/BeamusWayne/agent-trust-layer/blob/main/spec/TRUST-REPORT.md) — the same `{verdict, checks[]}` JSON Alfred's `ledger verify --trust-report` and trace-vault's `gate --trust-report` produce, so CI needs one consumer for all three gates. Local store mode works too: `nightwatch attest --base origin/main` inside any recorded project.
+
+## Recording Alfred — the dual-witness setup
+
+[Alfred](https://github.com/BeamusWayne/Alfred) (≥ 0.7) emits Claude Code-compatible hook payloads, so the same recorder records both harnesses — and an autonomous Alfred run gets **two independent witnesses**:
+
+```bash
+nightwatch init --agent alfred --goal "Implement add()" --scope "src/**"
+alfred run --verify "bun test"            # the night happens
+nightwatch debrief                        # witness 2: the black box's morning report
+alfred ledger verify                      # witness 1: the agent's own signed receipt
+```
+
+Alfred's receipt is HMAC-signed with a secret the agent never sees; NightWatch's ledger is an external record the agent cannot edit. To lie about a run, an agent would now have to forge both — different chains, different signatures, different processes. The ledger's `agent.harness` field records which harness produced each event (detected truthfully, not configured). A complete real run — both ledgers, both trust reports, the debrief — is committed in the [agent-trust-layer examples](https://github.com/BeamusWayne/agent-trust-layer/tree/main/examples/dual-witness).
+
+> Dogfooding note: the **first** recorded Alfred run ended in `attest` REFUSING the change — Alfred's `file_write` wasn't in the claim extractor's vocabulary, so the changed file looked undeclared. That's interop bug #6, fixed in 0.5.0 ([CHANGELOG](./CHANGELOG.md)); the recorder catching a recorder bug is the system working.
 
 ## Signing — from tamper-evident to tamper-resistant
 
@@ -182,7 +198,7 @@ Each ledger record carries `agent identity`, an `action class` (read / write / e
 1. **Fail-open recorder.** A trust tool that crashes your agent session is worse than no tool. Every hook path catches everything, spills unappendable events to `.nightwatch/spill/`, and exits 0.
 2. **No LLM judges an LLM.** Every verification in NightWatch is deterministic: re-execution, hashing, set comparison. There is no "ask a model whether the model did well" anywhere — and there never will be in the core.
 3. **Digests, not data.** The ledger stores SHA-256 digests and short redacted summaries. Holding the transcript? You can prove it matches the ledger. Don't? The ledger leaks neither your prompts nor your secrets.
-4. **Model- and harness-agnostic core.** Claude Code is the first adapter, not the architecture. The ledger/verify/debrief layers consume neutral records; adapters for other harnesses are a [roadmap item](#roadmap).
+4. **Model- and harness-agnostic core.** Claude Code was the first adapter, not the architecture — [Alfred](https://github.com/BeamusWayne/Alfred) (≥ 0.7) is the second, via the same five hook entries (`nightwatch init --agent alfred`). The ledger/verify/debrief layers consume neutral records; the ledger's `agent.harness` field says who produced each one.
 5. **The ledger is evidence, not advertising.** A verdict line tells you when *not* to trust the run. A tool that always says "all good" is decoration.
 
 ## Standards context
@@ -200,12 +216,12 @@ The record shape is designed to map onto the direction of [IETF draft-sharif-age
 
 | Command | What it does |
 |---|---|
-| `nightwatch init [--goal] [--scope ...]` | install hooks, create store, gitignore entry |
+| `nightwatch init [--goal] [--scope ...] [--agent claude-code\|alfred]` | install hooks (Claude Code or Alfred), create store, gitignore entry |
 | `nightwatch hook` | (called by hooks) ingest one event from stdin, always exit 0 |
 | `nightwatch status` | session summary + chain status |
 | `nightwatch debrief [--verify] [--last-n N] [--lang zh] [--md f]` | the morning report; `--verify` re-runs claimed test commands |
 | `nightwatch verify` | fast pass: chain integrity + signatures (when keyed) |
-| `nightwatch attest [--ledger f] [--base ref] [--changed ...] [--scope ...] [--pubkey f] [--root p] [--strict] [--json]` | CI gate: does the receipt vouch for this change set? non-zero exit on refusal |
+| `nightwatch attest [--ledger f] [--base ref] [--changed ...] [--scope ...] [--pubkey f] [--root p] [--strict] [--json] [--trust-report f]` | CI gate: does the receipt vouch for this change set? non-zero exit on refusal |
 | `nightwatch keygen [--force]` | generate P-256 signing keys; all later appends are signed |
 | `nightwatch checkpoint [-m note]` | manual worktree snapshot |
 | `nightwatch rollback <seq> [--apply]` | restore a checkpoint (dry-run by default) |
