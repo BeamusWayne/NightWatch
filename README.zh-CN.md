@@ -60,12 +60,13 @@ nightwatch demo            # English report
 
 ## 快速开始(真实会话)
 
-**环境要求**:Node ≥ 20 · 当前版 [Claude Code](https://claude.com/claude-code)(录制适配器——**它能跑的任何模型都行**)· 建议有 git(检查点与基准对账;没有则优雅降级)。macOS/Linux 已验证;Windows 未测试。
+**环境要求**:Node ≥ 20 · 受支持的 harness——当前版 [Claude Code](https://claude.com/claude-code) 或 [Alfred](https://github.com/BeamusWayne/Alfred) ≥ 0.7(**它们能跑的任何模型都行**)· 建议有 git(检查点与基准对账;没有则优雅降级)。macOS/Linux 已验证;Windows 未测试。
 
 ```bash
 cd your-project
 nightwatch init --goal "把 utils 迁移到 strict TS" --scope "src/**" "tests/**"
 # → 把 hooks 装进 .claude/settings.json（幂等,不动你已有的 hooks）
+# 录制 Alfred?  nightwatch init --agent alfred  → 写入 .alfred/hooks.json
 ```
 
 接下来按序操作——**第 1 步是所有人最容易漏掉的**:
@@ -193,12 +194,12 @@ nightwatch debrief    链校验 + 主张重跑 + 范围比对 → 晨报
 
 | 命令 | 作用 |
 |---|---|
-| `nightwatch init [--goal] [--scope ...]` | 安装 hooks、创建存储、写 gitignore |
+| `nightwatch init [--goal] [--scope ...] [--agent claude-code\|alfred]` | 安装 hooks(Claude Code 或 Alfred)、创建存储、写 gitignore |
 | `nightwatch hook` | (hooks 调用)从 stdin 摄入一条事件,永远 exit 0 |
 | `nightwatch status` | 会话摘要 + 链状态 |
 | `nightwatch debrief [--verify] [--last-n N] [--lang zh] [--md f]` | 晨报;`--verify` 重跑记录过的测试命令 |
 | `nightwatch verify` | 快速检查:链完整性 + 签名(有密钥时) |
-| `nightwatch attest [--ledger f] [--base ref] [--changed ...] [--scope ...] [--pubkey f] [--root p] [--strict] [--json]` | CI 门禁:回执能否为这组变更背书?拒绝时返回非零 |
+| `nightwatch attest [--ledger f] [--base ref] [--changed ...] [--scope ...] [--pubkey f] [--root p] [--strict] [--json] [--trust-report f]` | CI 门禁:回执能否为这组变更背书?拒绝时返回非零;`--trust-report` 输出跨工具 [Trust Report v0](https://github.com/BeamusWayne/agent-trust-layer) |
 | `nightwatch keygen [--force]` | 生成 P-256 签名密钥;此后所有追加记录带签名 |
 | `nightwatch checkpoint [-m note]` | 手动工作区快照 |
 | `nightwatch rollback <seq> [--apply]` | 恢复检查点(默认演练模式) |
