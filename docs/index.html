@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NightWatch — the black box recorder for overnight AI agents</title>
+<meta name="description" content="Hash-chained ledgers, worktree checkpoints, and a morning debrief that re-verifies the agent's claims. Logs are claims. Replays are proofs." />
+<meta name="theme-color" content="#0b0d10" />
+
+<meta property="og:type" content="website" />
+<meta property="og:title" content="NightWatch — the black box recorder for overnight AI agents" />
+<meta property="og:description" content="Logs are claims. Replays are proofs." />
+<meta property="og:url" content="https://beamuswayne.github.io/NightWatch/" />
+
+<style>
+  :root {
+    --bg: #0b0d10; --bg-soft: #101318; --card: #14181e;
+    --line: rgba(255,255,255,0.08); --line-strong: rgba(255,255,255,0.14);
+    --text: #e7eaee; --muted: #9aa1ab; --muted-dim: #6b7280;
+    --green: #4ade80; --green-dim: rgba(74,222,128,0.12); --amber: #fbbf24; --blue: #60a5fa;
+    --cjk: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC";
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, var(--cjk), monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, var(--cjk), sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg); color: var(--text); font-family: var(--sans); line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    background-image:
+      radial-gradient(900px 500px at 80% -10%, rgba(96,165,250,0.07), transparent 60%),
+      radial-gradient(700px 500px at 0% 0%, rgba(74,222,128,0.05), transparent 55%);
+  }
+  a { color: inherit; text-decoration: none; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 0 28px; }
+  .zh { display: none; }
+  html.lang-zh .en { display: none; }
+  html.lang-zh .zh { display: inline; }
+  html.lang-zh body { line-height: 1.75; }
+
+  nav { position: sticky; top: 0; z-index: 10; backdrop-filter: blur(10px); background: rgba(11,13,16,0.7); border-bottom: 1px solid var(--line); }
+  nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+  .logo { font-weight: 650; font-size: 16px; display: inline-flex; align-items: center; gap: 9px; }
+  .nav-links { display: flex; align-items: center; gap: 20px; font-size: 14px; }
+  .nav-links a { color: var(--muted); transition: color .15s; }
+  .nav-links a:hover { color: var(--text); }
+  .lang-btn { font-family: var(--mono); font-size: 12.5px; color: var(--text); background: var(--bg-soft); border: 1px solid var(--line); cursor: pointer; padding: 6px 12px; border-radius: 7px; transition: all .15s; line-height: 1; }
+  .lang-btn:hover { border-color: var(--green); color: var(--green); }
+
+  header.hero { padding: 80px 0 56px; border-bottom: 1px solid var(--line); }
+  .eyebrow { font-family: var(--mono); font-size: 13px; color: var(--blue); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 20px; display: inline-flex; align-items: center; gap: 9px; }
+  h1 { font-size: clamp(2rem, 5.4vw, 3.4rem); line-height: 1.08; letter-spacing: -0.025em; font-weight: 680; margin-bottom: 20px; max-width: 22ch; }
+  html.lang-zh h1 { line-height: 1.22; letter-spacing: -0.01em; }
+  h1 .accent { color: var(--green); }
+  .lede { font-size: clamp(1rem, 2vw, 1.15rem); color: var(--muted); max-width: 62ch; margin-bottom: 18px; }
+  .motto { font-family: var(--mono); font-size: 14px; color: var(--green); margin-bottom: 30px; }
+  .cta { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 40px; }
+  .btn { font-size: 14.5px; font-weight: 550; padding: 11px 20px; border-radius: 9px; border: 1px solid var(--line-strong); transition: all .15s; display: inline-flex; align-items: center; gap: 8px; }
+  .btn.primary { background: var(--green); color: #06250f; border-color: var(--green); }
+  .btn.primary:hover { background: #6ee79b; }
+  .btn.ghost { color: var(--text); }
+  .btn.ghost:hover { background: var(--bg-soft); border-color: var(--muted-dim); }
+
+  .terminal { background: #0c0f13; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; max-width: 640px; box-shadow: 0 24px 60px -30px rgba(0,0,0,0.8); }
+  .terminal .bar { display: flex; gap: 7px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+  .terminal .bar i { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+  .terminal .bar i:nth-child(1){ background:#ff5f57; } .terminal .bar i:nth-child(2){ background:#febc2e; } .terminal .bar i:nth-child(3){ background:#28c840; }
+  .terminal pre { font-family: var(--mono); font-size: 13px; line-height: 1.8; padding: 18px; color: var(--muted); overflow-x: auto; white-space: pre; }
+  .p { color: var(--green); } .ok { color: var(--green); } .dim { color: var(--muted-dim); } .w { color: var(--text); } .warn { color: var(--amber); }
+
+  .sec { padding: 64px 0; border-bottom: 1px solid var(--line); }
+  .sec-label { font-family: var(--mono); font-size: 12.5px; color: var(--muted-dim); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 14px; }
+  h2 { font-size: clamp(1.4rem, 3vw, 1.85rem); letter-spacing: -0.02em; font-weight: 640; margin-bottom: 14px; }
+  .sec p.body { color: var(--muted); max-width: 64ch; margin-bottom: 12px; }
+  .sec p.body b, .sec p.body strong { color: var(--text); }
+
+  table { border-collapse: collapse; width: 100%; margin-top: 22px; font-size: 0.95rem; }
+  th, td { text-align: left; padding: 11px 14px; border: 1px solid var(--line); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 12.5px; color: var(--muted-dim); text-transform: uppercase; letter-spacing: 0.06em; background: var(--bg-soft); }
+  td { color: var(--muted); }
+  td code, p code, li code { font-family: var(--mono); font-size: 0.9em; color: var(--text); background: var(--bg-soft); padding: 1.5px 6px; border-radius: 5px; border: 1px solid var(--line); }
+  td:first-child { color: var(--text); }
+
+  pre.block { font-family: var(--mono); font-size: 13.5px; line-height: 1.85; background: #0c0f13; border: 1px solid var(--line); border-radius: 12px; padding: 18px; overflow-x: auto; margin-top: 20px; color: var(--text); }
+  pre.block .c { color: var(--muted-dim); }
+
+  .steps { counter-reset: step; margin-top: 24px; display: grid; gap: 14px; }
+  .step { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; display: flex; gap: 16px; align-items: baseline; }
+  .step .n { font-family: var(--mono); color: var(--green); font-size: 14px; flex-shrink: 0; }
+  .step .t { color: var(--muted); font-size: 0.97rem; }
+  .step .t b { color: var(--text); }
+
+  .witness { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 24px; }
+  .wcard { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+  .wcard h3 { font-family: var(--mono); font-size: 1rem; margin-bottom: 8px; color: var(--text); }
+  .wcard p { font-size: 0.92rem; color: var(--muted); }
+  @media (max-width: 640px) { .witness { grid-template-columns: 1fr; } }
+
+  footer { padding: 36px 0 60px; }
+  footer .wrap { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  footer .muted { color: var(--muted-dim); font-size: 13px; font-family: var(--mono); }
+  footer a { border-bottom: 1px dotted var(--muted-dim); }
+  footer a:hover { color: var(--green); border-bottom-color: var(--green); }
+</style>
+<script>try{ if(localStorage.getItem('lang')==='zh') document.documentElement.classList.add('lang-zh'); }catch(e){}</script>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <div class="logo">🌙 NightWatch</div>
+    <div class="nav-links">
+      <a href="https://github.com/BeamusWayne/NightWatch" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://www.npmjs.com/package/nightwatch-agent" target="_blank" rel="noopener">npm</a>
+      <a href="https://beamuswayne.github.io/" rel="noopener"><span class="en">Author</span><span class="zh">作者</span></a>
+      <button id="langToggle" class="lang-btn" onclick="__toggleLang()">中文</button>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="eyebrow"><span class="en">Black box · flight recorder</span><span class="zh">黑匣子 · 飞行记录仪</span></span>
+    <h1>
+      <span class="en">The <span class="accent">black box recorder</span> for overnight AI agents.</span>
+      <span class="zh">过夜 AI agent 的<span class="accent">黑匣子记录仪</span>。</span>
+    </h1>
+    <p class="lede">
+      <span class="en">You start a run at 22:00 and wake up to a green checkmark and a confident summary. NightWatch records every event into a hash-chained, append-only ledger — and the morning debrief <b>re-verifies the agent's claims</b> instead of retelling its story.</span>
+      <span class="zh">你 22:00 启动一个运行,醒来看到绿色对勾和一段自信的总结。NightWatch 把会话的每个事件写入哈希链式、只可追加的账本——晨报<b>逐条重验 agent 的声明</b>,而不是转述它的故事。</span>
+    </p>
+    <p class="motto">Logs are claims. Replays are proofs.</p>
+    <div class="cta">
+      <a class="btn primary" href="https://www.npmjs.com/package/nightwatch-agent" target="_blank" rel="noopener">npm i -g nightwatch-agent</a>
+      <a class="btn ghost" href="https://github.com/BeamusWayne/NightWatch#quickstart-real-sessions" target="_blank" rel="noopener"><span class="en">Quickstart →</span><span class="zh">快速开始 →</span></a>
+    </div>
+
+    <div class="terminal" aria-hidden="true">
+      <div class="bar"><i></i><i></i><i></i></div>
+      <pre><span class="p">$</span> <span class="w">nightwatch debrief</span>
+<span class="dim">🌙 session 8.5h · 13 events · 10 tool calls · goal: fix UTC rollover</span>
+<span class="ok">✓</span> ledger integrity: <span class="ok">hash chain intact</span> <span class="dim">(13 records)</span>
+<span class="ok">✓</span> "tests passed" — <span class="w">re-ran the recorded command: still green</span>
+<span class="warn">⚠</span> OUT OF SCOPE: <span class="w">infra/deploy.yaml</span>
+<span class="warn">⚠</span> changed but <span class="w">never claimed</span>: scripts/hotfix.sh
+<span class="dim">verdict: 2 findings need your attention before trusting this run</span></pre>
+    </div>
+  </div>
+</header>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-label"><span class="en">What gets verified</span><span class="zh">验证什么</span></div>
+    <h2><span class="en">Claims, checked against ground truth.</span><span class="zh">每条声明,对照地面真相。</span></h2>
+    <table>
+      <tr><th><span class="en">The agent's claim</span><span class="zh">Agent 的声明</span></th><th><span class="en">Ground truth used</span><span class="zh">使用的地面真相</span></th></tr>
+      <tr><td><span class="en">“Tests passed”</span><span class="zh">「测试通过了」</span></td><td><span class="en">re-run the exact recorded command (<code>--verify</code>)</span><span class="zh">重跑录制下来的原始命令(<code>--verify</code>)</span></td></tr>
+      <tr><td><span class="en">“I changed these files”</span><span class="zh">「我改了这些文件」</span></td><td><span class="en"><code>git diff</code> against the run's first checkpoint — out-of-band writes surface</span><span class="zh">对运行首个检查点做 <code>git diff</code>——绕过工具的写入无处可藏</span></td></tr>
+      <tr><td><span class="en">“I stayed in scope”</span><span class="zh">「我没有越界」</span></td><td><span class="en">declared globs vs. actually changed paths</span><span class="zh">声明的 glob 范围 vs. 实际变更路径</span></td></tr>
+      <tr><td><span class="en">“This is the full history”</span><span class="zh">「这是完整历史」</span></td><td><span class="en">SHA-256 hash chain + head sidecar — tampering and truncation localize to the exact record</span><span class="zh">SHA-256 哈希链 + head 锚——篡改与截断定位到具体哪一条</span></td></tr>
+    </table>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-label"><span class="en">Quickstart</span><span class="zh">快速开始</span></div>
+    <h2><span class="en">Four steps, one night.</span><span class="zh">四步,一夜。</span></h2>
+    <div class="steps">
+      <div class="step"><span class="n">01</span><span class="t"><span class="en"><b>Install &amp; wire up.</b> <code>npm i -g nightwatch-agent</code>, then <code>nightwatch init</code> in your project — Claude Code by default, <code>--agent alfred</code> for Alfred.</span><span class="zh"><b>安装并接线。</b><code>npm i -g nightwatch-agent</code>,然后在项目里 <code>nightwatch init</code>——默认接 Claude Code,加 <code>--agent alfred</code> 接 Alfred。</span></span></div>
+      <div class="step"><span class="n">02</span><span class="t"><span class="en"><b>Start a NEW session</b> (hooks load at session start) and check it's recording: <code>nightwatch status</code>.</span><span class="zh"><b>开一个新会话</b>(hooks 在会话启动时加载),并确认在录:<code>nightwatch status</code>。</span></span></div>
+      <div class="step"><span class="n">03</span><span class="t"><span class="en"><b>Hand over the night.</b> Every event lands in the ledger; checkpoints snapshot the worktree as it goes.</span><span class="zh"><b>把夜晚交出去。</b>每个事件落账,检查点沿途快照工作区。</span></span></div>
+      <div class="step"><span class="n">04</span><span class="t"><span class="en"><b>Morning:</b> <code>nightwatch debrief --verify</code> — and in CI, <code>nightwatch attest</code> refuses any PR whose receipt doesn't vouch for its diff.</span><span class="zh"><b>清晨:</b><code>nightwatch debrief --verify</code>——在 CI 里,<code>nightwatch attest</code> 会拒签任何收据无法背书的 PR。</span></span></div>
+    </div>
+    <pre class="block"><span class="c"># try it right now — no agent session needed:</span>
+npm i -g nightwatch-agent
+nightwatch demo            <span class="c"># English report</span>
+nightwatch demo --lang zh  <span class="c"># 中文晨报</span></pre>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-label"><span class="en">The trust layer</span><span class="zh">信任层</span></div>
+    <h2><span class="en">One run, two independent witnesses.</span><span class="zh">同一次运行,两个独立见证者。</span></h2>
+    <p class="body">
+      <span class="en">NightWatch is the <b>Record</b> leg of the <a href="https://github.com/BeamusWayne/agent-trust-layer" target="_blank" rel="noopener" style="color:var(--green)">Agent Trust Layer</a>. Point it at an autonomous <a href="https://github.com/BeamusWayne/Alfred" target="_blank" rel="noopener" style="color:var(--green)">Alfred</a> run (<code>nightwatch init --agent alfred</code>) and the night ends with two ledgers that would both have to be forged to tell one lie:</span>
+      <span class="zh">NightWatch 是 <a href="https://github.com/BeamusWayne/agent-trust-layer" target="_blank" rel="noopener" style="color:var(--green)">Agent Trust Layer</a> 的「记录」环节。把它接到 <a href="https://github.com/BeamusWayne/Alfred" target="_blank" rel="noopener" style="color:var(--green)">Alfred</a> 的自主运行上(<code>nightwatch init --agent alfred</code>),一夜结束时会留下两本账——想撒一个谎,得同时伪造两本:</span>
+    </p>
+    <div class="witness">
+      <div class="wcard">
+        <h3><span class="en">Witness 1 — the agent's receipt</span><span class="zh">见证 1——agent 自己的收据</span></h3>
+        <p><span class="en">Alfred's HMAC-signed run ledger: verify-gate exits and feature outcomes, signed with a secret the agent never sees.</span><span class="zh">Alfred 的 HMAC 签名运行账本:verify 门禁退出码与 feature 结果,签名密钥 agent 永远接触不到。</span></p>
+      </div>
+      <div class="wcard">
+        <h3><span class="en">Witness 2 — the black box</span><span class="zh">见证 2——黑匣子</span></h3>
+        <p><span class="en">NightWatch's external hash-chained ledger: every tool call, every claim, recorded by a process the agent cannot edit.</span><span class="zh">NightWatch 的外部哈希链账本:每次工具调用、每条声明,由 agent 无法触碰的进程记录。</span></p>
+      </div>
+    </div>
+    <p class="body" style="margin-top:22px">
+      <span class="en">Both emit the same <a href="https://github.com/BeamusWayne/agent-trust-layer/blob/main/spec/TRUST-REPORT.md" target="_blank" rel="noopener" style="color:var(--green)">Agent Trust Report v0</a> — alongside <a href="https://github.com/BeamusWayne/trace-vault" target="_blank" rel="noopener" style="color:var(--green)">trace-vault</a>'s replay gate — so CI consumes one verdict format for all three. A real dual-witness run, raw ledgers included, is <a href="https://github.com/BeamusWayne/agent-trust-layer/tree/main/examples/dual-witness" target="_blank" rel="noopener" style="color:var(--green)">committed in the spec repo</a>.</span>
+      <span class="zh">两个见证者输出同一种 <a href="https://github.com/BeamusWayne/agent-trust-layer/blob/main/spec/TRUST-REPORT.md" target="_blank" rel="noopener" style="color:var(--green)">Agent Trust Report v0</a>——连同 <a href="https://github.com/BeamusWayne/trace-vault" target="_blank" rel="noopener" style="color:var(--green)">trace-vault</a> 的重放门禁,CI 用一个消费端读完三道关。一次真实双见证运行(含原始账本)<a href="https://github.com/BeamusWayne/agent-trust-layer/tree/main/examples/dual-witness" target="_blank" rel="noopener" style="color:var(--green)">已提交在 spec 仓库</a>。</span>
+    </p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span class="muted">MIT © <a href="https://beamuswayne.github.io/">Beamus Wayne</a></span>
+    <span class="muted"><a href="https://github.com/BeamusWayne/agent-trust-layer" target="_blank" rel="noopener"><span class="en">Part of the Agent Trust Layer</span><span class="zh">Agent Trust Layer 生态成员</span></a></span>
+  </div>
+</footer>
+
+<script>
+  function __toggleLang(){
+    var zh = document.documentElement.classList.toggle('lang-zh');
+    document.documentElement.lang = zh ? 'zh-CN' : 'en';
+    var btn = document.getElementById('langToggle');
+    if (btn) btn.textContent = zh ? 'EN' : '中文';
+    try { localStorage.setItem('lang', zh ? 'zh' : 'en'); } catch(e){}
+  }
+  (function(){
+    var zh = document.documentElement.classList.contains('lang-zh');
+    document.documentElement.lang = zh ? 'zh-CN' : 'en';
+    var btn = document.getElementById('langToggle');
+    if (btn) btn.textContent = zh ? 'EN' : '中文';
+  })();
+</script>
+
+</body>
+</html>
